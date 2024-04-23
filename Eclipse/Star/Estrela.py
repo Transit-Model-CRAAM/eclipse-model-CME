@@ -26,7 +26,8 @@ from ctypes import *
 from numpy.ctypeslib import ndpointer
 import platform
 import os
-
+import cv2 as cv
+import numpy as np
 
 class Estrela:
     '''
@@ -164,6 +165,15 @@ class Estrela:
         error=0
         self.error=error
         return self.estrela #retorna a decisão: se há manchas ou não
+
+    def cme(self): 
+        p0 = (300, 420)
+        p1 = (310, 450)
+        raio = 50
+
+        cv.line(self.estrela, p0, p1, 230, raio+10)
+        cv.line(self.estrela, p0, p1, 245, raio)
+        return self.estrela
 
     #### Inserção de fáculas
     def faculas(self,estrela,count): 
