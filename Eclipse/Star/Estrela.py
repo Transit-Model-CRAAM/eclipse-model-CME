@@ -54,6 +54,8 @@ class Estrela:
         self.coeficienteHum=coeficienteHum
         self.coeficienteDois=coeficienteDois
         self.tamanhoMatriz=tamanhoMatriz
+        self.temperaturaEfetiva = 4875.0
+
         #self.colors = ["gray","pink","hot"]
         error=0
         
@@ -166,13 +168,13 @@ class Estrela:
         self.error=error
         return self.estrela #retorna a decisão: se há manchas ou não
 
-    def cme(self): 
-        p0 = (300, 420)
-        p1 = (310, 450)
+    def cme(self, temperatura): 
+        p0 = (400, 220)
+        p1 = (410, 250)
         raio = 50
+        intensidade = (temperatura * self.intensidadeMaxima) / self.temperaturaEfetiva
 
-        cv.line(self.estrela, p0, p1, 230, raio+10)
-        cv.line(self.estrela, p0, p1, 245, raio)
+        cv.line(self.estrela, p0, p1, intensidade, raio)
         return self.estrela
 
     #### Inserção de fáculas

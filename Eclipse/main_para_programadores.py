@@ -47,10 +47,10 @@ parâmetro tempoHoras:: tempo do transito em horas
 raio= 373. #default (pixel)
 intensidadeMaxima=240 #default
 tamanhoMatriz = 856 #default
-raioSun=0.117 #raio da estrela em relacao ao raio do sol
+raioSun=0.805 #raio da estrela em relacao ao raio do sol
 raioStar=raioSun*696340 #multiplicando pelo raio solar em Km 
-coeficienteHum=0.65
-coeficienteDois=0.28
+coeficienteHum=0.377
+coeficienteDois=0.024
 
 
 #cria estrela
@@ -60,11 +60,12 @@ Nx= estrela_.getNx() #Nx e Ny necessarios para a plotagem do eclipse
 Ny= estrela_.getNy()
 dtor = np.pi/180.  
 
-periodo = 6.099 # em dias
-anguloInclinacao = 89.86  # em graus
+#-39.492915547801104
+periodo = 2.219 # em dias
+anguloInclinacao = 85.51  # em graus
 ecc = 0
 anom = 0 
-raioPlanJup = 0.0819 #em relação ao raio de jupiter
+raioPlanJup = 1.138 #em relação ao raio de jupiter
 raioPlanetaRstar = (raioPlanJup*69911)/raioStar #multiplicando pelo raio de jupiter em km 
 
 
@@ -76,7 +77,7 @@ if dec==1:
     #transforma em km para fazer em relação ao raio da estrela
 else:
     #semiEixoUA = Validar('Semi eixo (em UA:)')
-    semiEixoUA = 0.0259 #mock
+    semiEixoUA = 0.031 #mock
     # em unidades de Rstar
     semiEixoRaioStar = ((1.469*(10**8))*semiEixoUA)/raioStar
     #multiplicando pelas UA (transformando em Km) e convertendo em relacao ao raio da estrela 
@@ -120,14 +121,16 @@ estrela = estrela_.getEstrela()
 if (quantidade>0): #se manchas foram adicionadas. plotar
     estrela_.Plotar(tamanhoMatriz,estrela)
 
-estrela = estrela_.cme()
+temperatura_CME = 4000.0
+estrela = estrela_.cme(temperatura_CME)
 
 #criando lua 
-lua = True #se nao quiser luas, mudar para False
+lua = False #se nao quiser luas, mudar para False
 eclipse= Eclipse(Nx,Ny,raio,estrela)
 estrela_.Plotar(tamanhoMatriz,estrela)
 eclipse.geraTempoHoras()
 tempoHoras=eclipse.getTempoHoras()
+
 #instanciando LUA
 rmoon = 0.5 #em relacao ao raio da Terra
 rmoon = rmoon *6371 #multiplicando pelo R da terra em Km

@@ -65,7 +65,7 @@ double curvaLuzLua(double x0, double y0, double xm, double ym, double rMoon, int
 			valor += estrelaManchada[i];
 		}
 	}
-	
+	// normalizacao
 	valor = valor/maxCurvaLuz;
 
 //((kk/tamanhoMatriz-y0)**2+(kk-tamanhoMatriz*np.fix(kk/tamanhoMatriz)-x0)**2 <= raioPlanetaPixel**2)	

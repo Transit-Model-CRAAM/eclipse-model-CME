@@ -19,6 +19,7 @@ estrela: arquivo de programa onde são calculados os parâmetros da estrela, dad
 verify:função criada para validar entradas, por exemplo numeros nao float/int ou negativos
 '''
 
+import cv2 as cv
 import numpy as np
 import math
 import matplotlib.pyplot as plt
@@ -202,31 +203,20 @@ class Eclipse:
         else:
             rangeloop = pp
 
-
         ''''
         Curva de Luz e normalização da intensidade
         '''
-        # maximo da curva de luz, usado na normalizacao da intensidade
-        maxCurvaLuz = np.sum(self.estrelaManchada)
+        
 
         # definição de variaveis para utilizacao da função de calculo da curva de luz em C
         tamanho = self.tamanhoMatriz*self.tamanhoMatriz
 
-        # Matriz em auxiliar para ser passada como parametro para o script em C
-        em = (c_double*tamanho)()
-        for j in range (self.tamanhoMatriz):
-            for i in range(self.tamanhoMatriz):
-                index = i*self.tamanhoMatriz + j
-                num = self.estrelaManchada[i][j]
-                num = (c_double)(num)
-                em[index] = num
-
         # Matriz plan auxiliar para ser passada como parametro para o script em C
-        plan = (c_double*tamanho)()
-        for i in range(tamanho):
-            num = 1.
-            num = (c_double)(num)
-            plan[i] = num
+        # Create the numpy array filled with 1.0
+        plan_np = np.ones(tamanho, dtype=np.float64)
+
+        # Get the ctypes pointer
+        plan = plan_np.ctypes.data_as(POINTER(c_double))
 
         kk=np.arange(tamanhoMatriz*tamanhoMatriz)
 
@@ -282,6 +272,21 @@ class Eclipse:
                                 x0 = xplan[i]
                                 y0 = yplan[i]
 
+                                ### Adicionar aqui a cme 
+                                temperatura_cme = 4000.0 - i*10.0
+                                raio_cme = 50+i
+                                estrela_manchada_cme = self.estrelaManchada
+                                estrela_manchada_cme = self.cmeNoTransito(estrela_manchada_cme, temperatura_cme, raio_cme)
+
+                                # maximo da curva de luz, usado na normalizacao da intensidade
+                                maxCurvaLuz = np.sum(estrela_manchada_cme)
+                                
+                                # Assinatura de manchas
+                                # to - do: em continua sendo base, cmeNoTransito deve ser a matriz FINAL com a CME 
+                                # Matriz em auxiliar para ser passada como parametro para o script em C, que é transformada em c_double
+                                matrixAux = np.array(self.estrelaManchada, dtype=np.float64)
+                                em = matrixAux.ctypes.data_as(POINTER(c_double))
+
                                 self.curvaLuz[rangeloop[i]]=my_func.curvaLuz(x0,y0,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
 
                                 if(plota and self.curvaLuz[rangeloop[i]] != 1 and numAux<200):
@@ -289,8 +294,12 @@ class Eclipse:
                                     ii = np.where(((kk/tamanhoMatriz-y0)**2+(kk-tamanhoMatriz*np.fix(kk/tamanhoMatriz)-x0)**2 <= raioPlanetaPixel**2))
                                     plan[ii]=0.
                                     plan = plan.reshape(self.tamanhoMatriz, self.tamanhoMatriz) #posicao adicionada na matriz
-                                    plt.axis([0,self.Nx,0,self.Ny])
+                                    plt.axis([0,self.Nx,0,self.Ny]) 
+                                    
+                                    self.cme(temperatura_cme, raio_cme)
+                                   
                                     im = ax1.imshow(self.estrelaManchada*plan,cmap="hot", animated = True)
+                                    
                                     ims.append([im]) #armazena na animação os pontos do grafico (em imagem)
                                     numAux+=1
                                 plota = not(plota) #variavel auxiliar que seleciona o intervalo correto para plotagem
@@ -319,14 +328,11 @@ class Eclipse:
                                     numAux+=1
                                 plota = not(plota) #variavel auxiliar que seleciona o intervalo correto para plotagem
 
-            #end = time.time()
-            #print(end-start)
             ax2.plot(self.tempoHoras,self.curvaLuz)
             ax2.axis([-self.tempoTotal/2,self.tempoTotal/2,min(self.curvaLuz)-0.001,1.001])
             ani =animation.ArtistAnimation(fig, ims, interval=50, blit=True,repeat_delay=0.1)
             
             plt.show()
-            #ani.save('animacao_transito.gif',writer="PillowWriter") #salva o gif gerado na raiz do arquivo, para utilizacao do usuario
         else:
             #Inicio dos loops para a plotagem e calculo do trânsito
             start = time.time()
@@ -360,6 +366,24 @@ class Eclipse:
 
         error=0
         self.error=error
+
+
+    def cme(self, temperatura, raio): 
+        p0 = (400, 220)
+        p1 = (410, 250)
+        intensidade = (temperatura * 240) / 4875.0
+
+        cv.line(self.estrelaManchada, p0, p1, intensidade, raio)
+        return self.estrelaManchada
+
+
+    def cmeNoTransito(self, em, temperatura, raio): 
+        p0 = (400, 220)
+        p1 = (410, 250)
+        intensidade = (temperatura * 240) / 4875.0
+
+        cv.line(em, p0, p1, intensidade, raio)
+        return em
 
     '''Chamada dos objetos atribuídos à classe Eclipse.'''
     def getTempoTransito(self):
