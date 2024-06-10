@@ -222,16 +222,29 @@ class Estrela:
         return self.estrela #retorna a decisão: se há flare ou não 
 
     #### Inserção de flares
-    def ejecaoDeMassa(self): 
+
+    def ejecaoDeMassa(self, temperatura, raio): 
         # latitude 
         # longitude 
         # inclinacao
         # shape 
         # size
-        return self.estrela
 
+        coroa = self.createCoroa()
+        
+        p0 = (400, 220)
+        p1 = (410, 250)
+        intensidade = (temperatura * 240) / 4875.0
 
-#### Getters
+        cv.line(coroa, p0, p1, intensidade, raio)
+
+        return coroa
+
+    def createCoroa(self): 
+        matriz_fotosfera = np.zeros((self.tamanhoMatriz, self.tamanhoMatriz))
+        return matriz_fotosfera
+
+    #### Getters
     def getNx(self):
         '''
         Retorna parâmetro Nx, necessário para o Eclipse.

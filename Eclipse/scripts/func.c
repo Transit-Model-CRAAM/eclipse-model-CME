@@ -55,6 +55,29 @@ double curvaLuz(double x0, double y0, int tamanhoMatriz, double raioPlanetaPixel
 	return valor;
 }
 
+double curvaLuzCME(double x0, double y0, int tamanhoMatriz, double raioPlanetaPixel, double *estrelaManchada, double *kk, double maxCurvaLuz, double *matrizCME, double opacidadeCME){
+    double valor = 0;
+    int i;
+    
+#pragma omp parallel for reduction(+:valor)
+    for(i=0;i<tamanhoMatriz*tamanhoMatriz;i++){
+        if(matrizCME[i] > 0){ // Caso a posição esteja passando em cima da CME
+            if(pow((kk[i]/tamanhoMatriz-y0),2) + pow((kk[i]-tamanhoMatriz*floor(kk[i]/tamanhoMatriz)-x0),2) > pow(raioPlanetaPixel,2)){ // Se o planeta estiver atrás
+                valor += matrizCME[i] * opacidadeCME; // Opacidade sempre de 0 a 1 (%)
+            }
+            else {
+                valor += matrizCME[i];
+            }
+        }
+        else if (pow((kk[i]/tamanhoMatriz-y0),2) + pow((kk[i]-tamanhoMatriz*floor(kk[i]/tamanhoMatriz)-x0),2) > pow(raioPlanetaPixel,2)){
+            valor += estrelaManchada[i];
+        }
+    }
+    
+    valor = valor/maxCurvaLuz;    
+    return valor;
+}
+
 double curvaLuzLua(double x0, double y0, double xm, double ym, double rMoon, int tamanhoMatriz, double raioPlanetaPixel, double *estrelaManchada, double *kk, double maxCurvaLuz){
 	double valor = 0;
 	int i;
