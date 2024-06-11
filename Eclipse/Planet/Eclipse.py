@@ -280,7 +280,7 @@ class Eclipse:
                                 raio_cme = 50+i
 
                                 # quando a altura da cme atingir o planeta (colocar caluclo da velocidade da cme por tempo de trânsito)
-                                if (i >= len(rangeloop)/3): 
+                                if (i >= len(rangeloop)/2): 
                                     coroa = self.ejecaoDeMassa(temperatura_cme, raio_cme)
                                     maxCurvaLuz = np.sum(self.estrelaManchada)
                                     # opacidade CME 
@@ -303,24 +303,28 @@ class Eclipse:
                                     self.curvaLuz[rangeloop[i]]=my_func.curvaLuz(x0,y0,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
 
                                 if(plota and self.curvaLuz[rangeloop[i]] != 1 and numAux<200):
-                                    plan = np.zeros(tamanhoMatriz*tamanhoMatriz)+1.
+                                    plan = np.zeros(tamanhoMatriz*tamanhoMatriz)+1. #cria a base do planeta (cheio de 1)
+                                    coroa_array = np.zeros(tamanhoMatriz*tamanhoMatriz) #cria uma base para a coroa (cheio de 0)
                                     
                                     ii = np.where(((kk/tamanhoMatriz-y0)**2+(kk-tamanhoMatriz*np.fix(kk/tamanhoMatriz)-x0)**2 <= raioPlanetaPixel**2))
                                     plan[ii]=0.
-
-                                    # if (i >= len(rangeloop)/3): 
-                                    #     coroa = np.asarray(coroa)
-                                    #     ii = ii[0]
-                                    #     jj = np.where(coroa > 0)[0]
-                                    #     common_indices = np.intersect1d(ii, jj)
-                                    #     plan[common_indices] = coroa[common_indices] * opacidade_cme
 
                                     plan = plan.reshape(self.tamanhoMatriz, self.tamanhoMatriz) #posicao adicionada na matriz
                                     plt.axis([0,self.Nx,0,self.Ny]) 
                                     
                                     self.cme(temperatura_cme, raio_cme)
-                                   
-                                    im = ax1.imshow(self.estrelaManchada*plan,cmap="hot", animated = True)
+                                    
+                                    if (i >= len(rangeloop)/2):
+                                        coroa = coroa.flatten()
+                                        ii = ii[0]
+                                        jj = np.where(coroa > 0)[0]
+                                        common_indices = np.intersect1d(ii, jj) #indices que sao sobrepostos entre cme e planeta
+                                        coroa_array[common_indices] = coroa[common_indices] * opacidade_cme 
+                                        coroa_array = coroa_array.reshape(self.tamanhoMatriz, self.tamanhoMatriz) #transforma em vetor
+                                        plot_estrela = self.estrelaManchada*plan + coroa_array #multiplica o planeta na estrela e soma o valor da cme
+                                        im = ax1.imshow(plot_estrela, cmap="hot", animated = True)
+                                    else:
+                                        im = ax1.imshow(self.estrelaManchada*plan,cmap="hot", animated = True)
                                     
                                     ims.append([im]) #armazena na animação os pontos do grafico (em imagem)
                                     numAux+=1
