@@ -53,7 +53,7 @@ class Eclipse:
         self.Ny = Ny
         self.raioEstrelaPixel = raioEstrelaPixel
         self.estrelaManchada = estrelaManchada
-        self.ejecaoMassa = self.criaEjecaoMassa(self.estrelaManchada)
+        self.ejecaoMassa = self.getMatrizEstrelaManchada(self.estrelaManchada)
         
         # OUTPUT
         curvaLuz =[ 1.0 for i in range(self.Nx)]
@@ -265,10 +265,11 @@ class Eclipse:
             plota = True #variavel FLAG que indica quando armazenar a imagem do PLOT 
             numAux = 0 #variavel FLAG que indica quantidade de imagens no vetor de PLOT
 
-            print("\nAguarde um momento, a animacao do trânsito está sendo gerada.\n")
+            print("\nAguarde um momento, a animacao do trânsito está sendo gerada...\n")
+
             #Inicio dos loops para a plotagem e calculo do trânsito
-            #start = time.time()
-            intervalo = math.ceil(len(rangeloop)/400)
+            # maximo da curva de luz, usado na normalizacao da intensidade
+            maxCurvaLuz = np.sum(self.estrelaManchada)
             if (lua == False):
                 for i in range(0,len(rangeloop)):
 
@@ -276,28 +277,30 @@ class Eclipse:
                                 y0 = yplan[i]
 
                                 ### Adicionar aqui a cme 
-                                temperatura_cme = 4000.0 - i*10.0
-                                raio_cme = 50+i
+                                temperatura_cme = 3000.0 - i*0.1
+                                raio_cme = 50+math.floor(0.3*i)
+                                # temperatura_cme = 3000.0 - 10*i
+                                # raio_cme = 50+i
 
                                 # quando a altura da cme atingir o planeta (colocar caluclo da velocidade da cme por tempo de trânsito)
-                                if (i >= len(rangeloop)/2): 
+                                if (i >= len(rangeloop)/3): 
                                     coroa = self.ejecaoDeMassa(temperatura_cme, raio_cme)
-                                    maxCurvaLuz = np.sum(self.estrelaManchada)
                                     # opacidade CME 
                                     opacidade_cme = 0.3
+                                    # maximo da curva de luz, usado na normalizacao da intensidade
+                                    maxCurvaLuz = np.sum(self.estrelaManchada)
                                     # Soma entre cme e planeta e depois multiplica o resultado pela estrela 
-                                    self.curvaLuz[rangeloop[i]]=my_func.curvaLuzCME(x0,y0,self.tamanhoMatriz,raioPlanetaPixel,self.ejecaoMassa,kk2,maxCurvaLuz, self.criaEjecaoMassa(coroa), opacidade_cme)
+                                    em = self.getMatrizEstrelaManchada(coroa)
+                                    self.curvaLuz[rangeloop[i]]=my_func.curvaLuzCME(x0,y0,self.tamanhoMatriz,raioPlanetaPixel,self.ejecaoMassa,kk2,maxCurvaLuz, em, opacidade_cme)
                                 
                                 else: 
-                                    estrela_manchada_cme = self.estrelaManchada
+                                    estrela_manchada_cme = np.copy(self.estrelaManchada)
                                     # Assinatura de manchas
                                     estrela_manchada_cme = self.cmeNoTransito(estrela_manchada_cme, temperatura_cme, raio_cme)
-
                                     # maximo da curva de luz, usado na normalizacao da intensidade
-                                    maxCurvaLuz = np.sum(estrela_manchada_cme)
-
+                                    maxCurvaLuz = np.sum(self.estrelaManchada)
                                     # Matriz em auxiliar para ser passada como parametro para o script em C, que é transformada em c_double
-                                    em = self.criaEjecaoMassa(estrela_manchada_cme)
+                                    em = self.getMatrizEstrelaManchada(estrela_manchada_cme)
 
                                     # to - do: mudar self.ejecaoMassa para self.atividadeEstrela
                                     self.curvaLuz[rangeloop[i]]=my_func.curvaLuz(x0,y0,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
@@ -338,6 +341,8 @@ class Eclipse:
                                 ### adicionando luas ###
                                 xm = x0-self.xxm[i]         
                                 ym = y0-self.yym[i]  
+
+                                em = self.getMatrizEstrelaManchada(self.estrelaManchada)
                                 
                                 self.curvaLuz[rangeloop[i]]=my_func.curvaLuzLua(x0,y0,xm,ym,self.Rmoon,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
 
@@ -403,10 +408,10 @@ class Eclipse:
         return self.estrelaManchada
 
 
-    def criaEjecaoMassa(self, estrela): 
+    def getMatrizEstrelaManchada(self, estrela): 
         matrixAux = np.array(estrela, dtype=np.float64)
-        ejecaoMassa = matrixAux.ctypes.data_as(POINTER(c_double))
-        return ejecaoMassa
+        matrizEstrelaManchada = matrixAux.ctypes.data_as(POINTER(c_double))
+        return matrizEstrelaManchada
 
     def cmeNoTransito(self, em, temperatura, raio): 
         p0 = (400, 220)
