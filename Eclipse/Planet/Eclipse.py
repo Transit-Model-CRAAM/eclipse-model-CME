@@ -99,6 +99,10 @@ class Eclipse:
         return moon
         
 
+    def criarEclipseLua(): 
+        return 
+    def criarEclipseCME(): 
+        return
 
     def criarEclipse(self,semiEixoRaioStar,semiEixoUA, raioPlanetaRstar, raioPlanJup ,periodo,anguloInclinacao,lua,ecc,anom,anim=True,plot=True):
 
@@ -167,7 +171,8 @@ class Eclipse:
         xplaneta=xp-xp[ie[0]]
         yplaneta=yp*np.cos(self.anguloInclinacao*dtor)
 
-        pp, = np.where((abs(xplaneta) < 1.2 * tamanhoMatriz/2) & (abs(yplaneta) < tamanhoMatriz/2)) #rearranja o vetor apenas com os pontos necessários para a análise da curva de luz
+        #### Intervalo para calculo do transito
+        pp, = np.where((abs(xplaneta) < 2 * tamanhoMatriz/2) & (abs(yplaneta) < tamanhoMatriz/2)) #rearranja o vetor apenas com os pontos necessários para a análise da curva de luz
         xplan = xplaneta[pp] + tamanhoMatriz/2
         yplan = yplaneta[pp] + tamanhoMatriz/2
 
@@ -270,6 +275,7 @@ class Eclipse:
             #Inicio dos loops para a plotagem e calculo do trânsito
             # maximo da curva de luz, usado na normalizacao da intensidade
             maxCurvaLuz = np.sum(self.estrelaManchada)
+            
             if (lua == False):
                 for i in range(0,len(rangeloop)):
 
@@ -277,10 +283,10 @@ class Eclipse:
                                 y0 = yplan[i]
 
                                 ### Adicionar aqui a cme 
-                                temperatura_cme = 3000.0 - i*0.1
-                                raio_cme = 50+math.floor(0.3*i)
-                                # temperatura_cme = 3000.0 - 10*i
-                                # raio_cme = 50+i
+                                #temperatura_cme = 3000.0 - i*0.1
+                                #raio_cme = 50+math.floor(0.3*i)
+                                temperatura_cme = 3000.0 - 10*i
+                                raio_cme = 50+i
 
                                 # quando a altura da cme atingir o planeta (colocar caluclo da velocidade da cme por tempo de trânsito)
                                 if (i >= len(rangeloop)/3): 
