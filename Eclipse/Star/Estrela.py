@@ -48,18 +48,17 @@ class Estrela:
 
     def __init__(self,raio,raioSun,intensidadeMaxima,coeficienteHum,coeficienteDois,tamanhoMatriz):
         
-        self.raio=raio #em pixel
-        self.raioSun = raioSun
-        self.intensidadeMaxima=intensidadeMaxima
-        self.coeficienteHum=coeficienteHum
-        self.coeficienteDois=coeficienteDois
-        self.tamanhoMatriz=tamanhoMatriz
+        self.raio = raio # em pixel
+        self.raioSun = raioSun # em relacao ao raio do Sol
+        self.intensidadeMaxima = intensidadeMaxima
+        self.coeficienteHum = coeficienteHum
+        self.coeficienteDois = coeficienteDois
+        self.tamanhoMatriz = tamanhoMatriz
         self.temperaturaEfetiva = 4875.0
 
         #self.colors = ["gray","pink","hot"]
         error=0
-        
-
+    
         #start = time.time()
         # Obter o caminho absoluto do diretório atual
         dir_atual = os.path.dirname(os.path.abspath(__file__))
@@ -83,7 +82,7 @@ class Estrela:
             my_func = CDLL(script_path)
 
         my_func.criaEstrela.restype = ndpointer(dtype=c_int, ndim=2, shape=(self.tamanhoMatriz,self.tamanhoMatriz))
-        self.estrela = my_func.criaEstrela(self.tamanhoMatriz,self.tamanhoMatriz,self.tamanhoMatriz,c_float(self.raio),c_float(self.intensidadeMaxima),c_float(self.coeficienteHum),c_float(self.coeficienteDois))
+        self.estrelaMatriz = my_func.criaEstrela(self.tamanhoMatriz,self.tamanhoMatriz,self.tamanhoMatriz,c_float(self.raio),c_float(self.intensidadeMaxima),c_float(self.coeficienteHum),c_float(self.coeficienteDois))
 
         del my_func
 
@@ -93,13 +92,13 @@ class Estrela:
         self.color = "hot"
 
         ### Prints para testes. Descomentar linhas abaixo se necessário ### 
-        #print(self.estrela)
+        #print(self.estrelaMatriz)
         #self.color = random.choice(self.colors)
-        #Plotar(self.tamanhoMatriz,self.estrela)
+        #Plotar(self.tamanhoMatriz,self.estrelaMatriz)
         #end = time.time()
         #print(end - start)
     
-#######  Inserção de manchas
+    #######  Inserção de manchas
     def manchas(self,r,intensidadeMancha,lat,longt):
         '''
         Função onde é criada a(s) mancha(s) da estrela. Todos os parâmetros 
@@ -157,25 +156,25 @@ class Estrela:
         spot[ii]=self.intensidadeMancha
         spot = spot.reshape([self.Ny, self.Nx])
     
-        self.estrela= self.estrela * spot
+        self.estrelaMatriz= self.estrelaMatriz * spot
 
         ### Plot para testes. Descomentar abaixo se necessario ### 
         #plt.axis([0,self.Nx,0,self.Ny])  #corrigir chamada do plot
-        #self.estrelaManchada= estrelaManchada        
-        #Plotar(self.tamanhoMatriz,self.estrela)
+        #self.estrelaMatrizManchada= estrelaManchada        
+        #Plotar(self.tamanhoMatriz,self.estrelaMatriz)
 
         error=0
         self.error=error
-        return self.estrela #retorna a decisão: se há manchas ou não
+        return self.estrelaMatriz #retorna a decisão: se há manchas ou não
 
-    def cme(self, temperatura): 
+    def cme(self, temperatura, raio): 
         p0 = (400, 220)
         p1 = (410, 250)
-        raio = 50
+        raio = raio
         intensidade = (temperatura * self.intensidadeMaxima) / self.temperaturaEfetiva
 
-        cv.line(self.estrela, p0, p1, intensidade, raio)
-        return self.estrela
+        cv.line(self.estrelaMatriz, p0, p1, intensidade, raio)
+        return self.estrelaMatriz
 
     #### Inserção de fáculas
     def faculas(self,estrela,count): 
@@ -196,8 +195,8 @@ class Estrela:
         error=0
         self.error=error
         #vai sobrescrever a estrela que ele está criando, sendo ela a estrela ou a estrelaManchada.
-        self.estrela=estrela
-        return self.estrela #retorna a decisão: se há fácula ou não 
+        self.estrelaMatriz=estrela
+        return self.estrelaMatriz #retorna a decisão: se há fácula ou não 
    
     #### Inserção de flares
     def flares(self,estrela,count): #recebe como parâmetro a estrela atualizada
@@ -218,8 +217,8 @@ class Estrela:
         error=0
         self.error=error
         #vai sobrescrever a estrela que ele está criando, sendo ela a estrela ou a estrelaManchada.
-        self.estrela=estrela
-        return self.estrela #retorna a decisão: se há flare ou não 
+        self.estrelaMatriz=estrela
+        return self.estrelaMatriz #retorna a decisão: se há flare ou não 
 
     #### Inserção de flares
 
@@ -266,7 +265,7 @@ class Estrela:
         '''
         Retorna a estrela, plotada sem as manchas, necessário caso o usuário escolha a plotagem sem manchas.
         '''
-        return self.estrela
+        return self.estrelaMatriz
 
     def getu1(self):
         return self.coeficienteHum

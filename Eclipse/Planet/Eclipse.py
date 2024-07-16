@@ -18,7 +18,7 @@ matplotlib:
 estrela: arquivo de programa onde são calculados os parâmetros da estrela, dado os inputs do usuário (raio, intensidade,etc)
 verify:função criada para validar entradas, por exemplo numeros nao float/int ou negativos
 '''
-
+from IPython.display import HTML
 import cv2 as cv
 import numpy as np
 import math
@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 from matplotlib import pyplot
 from Star.Estrela import Estrela
 from Planet.Moon import Moon
+from Planet.Planeta import Planeta
 from Misc.Verify import Validar
 #from keplerAux import keplerfunc  #biblioteca auxiliar caso a biblioteca kepler nao funcione
 import matplotlib.animation as animation
@@ -34,15 +35,14 @@ import os
 from ctypes import *
 from numpy.ctypeslib import ndpointer
 import time
-import gc
-import sys
 import platform
 
 class Eclipse:
 
    
-    def __init__(self,Nx,Ny,raioEstrelaPixel,estrelaManchada: Estrela):
+    def __init__(self,Nx,Ny,raioEstrelaPixel,estrelaManchada: Estrela, planeta: Planeta):
         
+        self.planeta = planeta
 
         '''
         :parâmetro Nx e Ny: tamanho da matriz estrela 
@@ -54,28 +54,28 @@ class Eclipse:
         self.raioEstrelaPixel = raioEstrelaPixel
         self.estrelaManchada = estrelaManchada
         self.ejecaoMassa = self.getMatrizEstrelaManchada(self.estrelaManchada)
+        self.intervaloTempo = 1
+        self.tamanhoMatriz = self.Nx #Nx ou Ny
         
         # OUTPUT
-        curvaLuz =[ 1.0 for i in range(self.Nx)]
-        self.curvaLuz = curvaLuz
+        self.curvaLuz = [ 1.0 for i in range(self.Nx)]
 
     def geraTempoHoras(self):
         '''
         Função chamada na Main para o cálculo do tempo de Trânsito em Horas
         '''
-        x=int(input("Intervalo de tempo=1. Deseja alterar? 1. SIM | 2. NÃO: "))
+        #x=int(input("Intervalo de tempo=1. Deseja alterar? 1. SIM | 2. NÃO: "))
+        x=2
         if x ==1:
             self.intervaloTempo=float(input('Digite o intervalo de tempo em minutos: '))
         elif x==2:
             self.intervaloTempo = 1.   # em minutos
 
-
-        self.tamanhoMatriz= self.Nx #Nx ou Ny
         tempoHoras = (np.arange(self.tamanhoMatriz)-self.tamanhoMatriz/2)*self.intervaloTempo/60.   # em horas
         self.tempoHoras= tempoHoras
 
     def setTempoHoras(self,intervalo):
-        self.intervaloTempo = intervalo   # em minutos
+        self.intervaloTempo = intervalo  # em minutos
         self.tamanhoMatriz= self.Nx #Nx ou Ny
         tempoHoras = (np.arange(self.tamanhoMatriz)-self.tamanhoMatriz/2)*self.intervaloTempo/60.   # em horas
         self.tempoHoras= tempoHoras
@@ -98,13 +98,7 @@ class Eclipse:
         self.yl = moon.getyl()
         return moon
         
-
-    def criarEclipseLua(): 
-        return 
-    def criarEclipseCME(): 
-        return
-
-    def criarEclipse(self,semiEixoRaioStar,semiEixoUA, raioPlanetaRstar, raioPlanJup ,periodo,anguloInclinacao,lua,ecc,anom,anim=True,plot=True):
+    def criarEclipse(self, lua, cme, anim=True, plot=True):
 
         '''
         Criação da classe eclipse, que retornará a curva de luz do trânsito do planeta ao redor da estrela
@@ -118,31 +112,19 @@ class Eclipse:
         :parâmetro raioPlanetaRstar: raio do planeta em relacao ao raio da estrela 
         :parâmetro raioPlanJup: raio do planeta em relacao ao raio de Jupiter
         :parâmetro lua: lua que orbita o planeta (entra como True or False)
-        :parâmetro ecc: excêntricidade da órbita do planeta
-        :parâmetro anom: anomalia da órbita do planeta
+        :parâmetro self.planeta.ecc: excêntricidade da órbita do planeta
+        :parâmetro self.planeta.anom: self.planeta.anomalia da órbita do planeta
         :parâmetro anim: verifica se a animação será mostrada para o usuário (True por default)
         :parâmetro plot: verifica se o gráfico da curva de luz será mostrado para o usuário (True por default)
         '''
-
+        
         intervaloTempo = self.intervaloTempo
         tamanhoMatriz = self.tamanhoMatriz
-        self.semiEixoRaioStar = semiEixoRaioStar
-        self.semiEixoUA = semiEixoUA
-        self.raioPlanetaRstar = raioPlanetaRstar
-        self.raioPlanJup = raioPlanJup
-        self.periodo = periodo
-        self.anguloInclinacao = anguloInclinacao
         self.lua = lua
-        self.ecc = ecc
-        self.anom = anom 
-
         dtor = np.pi/180.
-        semiEixoPixel = self.semiEixoRaioStar * self.raioEstrelaPixel
+        semiEixoPixel = self.planeta.semiEixoRaioStar * self.raioEstrelaPixel
 
         '''Inicio do calculo do TEMPO TOTAL de trânsito através dos parâmetros passados ao planeta.'''
-
-        #ecc = 0. #default
-        #anom = 0.  #default
 
         #calculando obliquidade
 
@@ -152,33 +134,31 @@ class Eclipse:
         :parâmetro yplaneta: y na matriz que projetará o planeta
         '''
 
-        nk=2*np.pi/(self.periodo*24)    # em horas^(-1)
-        Tp=self.periodo*anom/360.*24. # tempo do pericentro (em horas)
+        nk = 2*np.pi/(self.planeta.periodo * 24)    # em horas^(-1)
+        Tp = self.planeta.periodo*self.planeta.anom/360. * 24. # tempo do pericentro (em horas)
         m = nk*(self.tempoHoras-Tp)     # em radianos
 
-        # calculando a anomalia excentrica em radianos
+        # calculando a self.planeta.anomalia excentrica em radianos
         
-        eccanom = solve(m,ecc)  # subrotina em anexo
-        xs=semiEixoPixel*(np.cos(eccanom)-ecc)
-        ys=semiEixoPixel*(math.sqrt(1-(ecc**2))*np.sin(eccanom))
+        eccanom = solve(m,self.planeta.ecc)  # subrotina em anexo
+        xs = semiEixoPixel*(np.cos(eccanom)-self.planeta.ecc)
+        ys = semiEixoPixel*(math.sqrt(1-(self.planeta.ecc**2))*np.sin(eccanom))
 
-        ang=anom*dtor-(np.pi/2)
-        xp=xs*np.cos(ang)-ys*np.sin(ang)
-        yp=xs*np.sin(ang)+ys*np.cos(ang)
+        ang = self.planeta.anom*dtor-(np.pi/2)
+        xp = xs*np.cos(ang)-ys*np.sin(ang)
+        yp = xs*np.sin(ang)+ys*np.cos(ang)
 
         ie, = np.where(self.tempoHoras == min(abs(self.tempoHoras)))
 
-        xplaneta=xp-xp[ie[0]]
-        yplaneta=yp*np.cos(self.anguloInclinacao*dtor)
+        xplaneta = xp-xp[ie[0]]
+        yplaneta = yp*np.cos(self.planeta.anguloInclinacao*dtor)
 
         #### Intervalo para calculo do transito
-        pp, = np.where((abs(xplaneta) < 2 * tamanhoMatriz/2) & (abs(yplaneta) < tamanhoMatriz/2)) #rearranja o vetor apenas com os pontos necessários para a análise da curva de luz
+        pp, = np.where((abs(xplaneta) < 1.2 * tamanhoMatriz/2) & (abs(yplaneta) < tamanhoMatriz/2)) #rearranja o vetor apenas com os pontos necessários para a análise da curva de luz
         xplan = xplaneta[pp] + tamanhoMatriz/2
         yplan = yplaneta[pp] + tamanhoMatriz/2
 
-        raioPlanetaPixel = self.raioPlanetaRstar * self.raioEstrelaPixel
-
-       
+        raioPlanetaPixel = self.planeta.raioPlanetaRstar * self.raioEstrelaPixel
 
         '''
         Inicio do calculo do tempo em Horas e da curva de Luz na matriz
@@ -188,13 +168,13 @@ class Eclipse:
         :parâmetro curvaLuz: calcula a curva de luz do transito do planeta ao eclipsar a estrela, também se torna 
         objeto de Eclipse       
         '''
-        latitudeTransito = -np.arcsin(self.semiEixoRaioStar*np.cos(self.anguloInclinacao*dtor))/dtor # latitude Sul (arbitraria)
+        latitudeTransito = -np.arcsin(self.planeta.semiEixoRaioStar*np.cos(self.planeta.anguloInclinacao*dtor))/dtor # latitude Sul (arbitraria)
+        
         # duracao do transito em horas
-        duracaoTransito=2 * (90.-np.arccos((np.cos(latitudeTransito*dtor))/self.semiEixoRaioStar)/dtor)*self.periodo/360*24. 
-        tempoTotal = 3 * duracaoTransito
+        duracaoTransito=2 * (90.-np.arccos((np.cos(latitudeTransito*dtor))/self.planeta.semiEixoRaioStar)/dtor)*self.planeta.periodo/360*24. 
+        tempoTotal = 3*duracaoTransito
         self.tempoTotal= tempoTotal
 
-        
         # calculo do numero de pontos na curva de luz
         nn=np.fix(tempoTotal*60./intervaloTempo)
 
@@ -213,7 +193,6 @@ class Eclipse:
         Curva de Luz e normalização da intensidade
         '''
         
-
         # definição de variaveis para utilizacao da função de calculo da curva de luz em C
         tamanho = self.tamanhoMatriz*self.tamanhoMatriz
 
@@ -223,7 +202,6 @@ class Eclipse:
 
         # Get the ctypes pointer
         plan = plan_np.ctypes.data_as(POINTER(c_double))
-
         kk=np.arange(tamanhoMatriz*tamanhoMatriz)
 
         # Matriz kk auxiliar para ser passada como parametro para o script em C
@@ -263,6 +241,12 @@ class Eclipse:
         '''
         Criação da matriz para plotagem:
         '''
+        #Inicio dos loops para a plotagem e calculo do trânsito
+        # maximo da curva de luz, usado na normalizacao da intensidade
+        maxCurvaLuz = np.sum(self.estrelaManchada)
+
+        em = self.getMatrizEstrelaManchada(self.estrelaManchada)
+
         if(anim):
             #criacao de variaveis para plotagem da animacao 
             fig, (ax1, ax2) = plt.subplots(2,1)
@@ -271,14 +255,96 @@ class Eclipse:
             numAux = 0 #variavel FLAG que indica quantidade de imagens no vetor de PLOT
 
             print("\nAguarde um momento, a animacao do trânsito está sendo gerada...\n")
-
-            #Inicio dos loops para a plotagem e calculo do trânsito
-            # maximo da curva de luz, usado na normalizacao da intensidade
-            maxCurvaLuz = np.sum(self.estrelaManchada)
             
+            if (cme):
+                self.addCME(rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota)
+            elif (lua):
+                self.addLua(rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota)
+            else : 
+                for i in range(0,len(rangeloop)):
+
+                                x0 = xplan[i]
+                                y0 = yplan[i]
+
+                                self.curvaLuz[rangeloop[i]] = my_func.curvaLuz(x0,y0,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
+
+                                if(plota and self.curvaLuz[rangeloop[i]] != 1 and numAux<200):
+                                    plan = np.zeros(tamanhoMatriz*tamanhoMatriz)+1.
+                                    ii = np.where(((kk/tamanhoMatriz-y0)**2+(kk-tamanhoMatriz*np.fix(kk/tamanhoMatriz)-x0)**2 <= raioPlanetaPixel**2))
+                                    plan[ii]=0.
+                                    plan = plan.reshape(self.tamanhoMatriz, self.tamanhoMatriz) #posicao adicionada na matriz
+                                    plt.axis([0,self.Nx,0,self.Ny])
+                                    im = ax1.imshow(self.estrelaManchada*plan,cmap="hot", animated = True)
+                                    ims.append([im]) #armazena na animação os pontos do grafico (em imagem)
+                                    numAux+=1
+                                plota = not(plota) #variavel auxiliar que seleciona o intervalo correto para plotagem
+
+            ax2.plot(self.tempoHoras,self.curvaLuz)
+            ax2.axis([-self.tempoTotal/2,self.tempoTotal/2,min(self.curvaLuz)-0.001,1.001])
+            ani =animation.ArtistAnimation(fig, ims, interval=50, blit=True,repeat_delay=0.1)
+            
+            plt.show(block = True)
+        else:
+            #Inicio dos loops para a plotagem e calculo do trânsito
+            start = time.time()
             if (lua == False):
                 for i in range(0,len(rangeloop)):
 
+                                x0 = xplan[i]
+                                y0 = yplan[i]
+
+                                self.curvaLuz[rangeloop[i]] = my_func.curvaLuz(x0,y0,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
+            else:
+                for i in range(0,len(rangeloop)):
+                                x0 = xplan[i] 
+                                y0 = yplan[i]
+
+                                ### adicionando luas ###
+                                xm = x0-self.xxm[i]         
+                                ym = y0-self.yym[i]  
+                                
+                                self.curvaLuz[rangeloop[i]] = my_func.curvaLuzLua(x0,y0,xm,ym,self.Rmoon,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
+            if(plot):
+                end = time.time()
+                print(end-start)
+                plt.plot(self.tempoHoras,self.curvaLuz)
+                plt.axis([-self.tempoTotal/2,self.tempoTotal/2,min(self.curvaLuz)-0.001,1.001])
+                plt.show()
+
+        locals().clear # Limpa qualquer possível sujeira de memória
+        del my_func
+
+        error=0
+        self.error=error
+
+    def addLua(self, rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota): 
+         for i in range(0,len(rangeloop)):
+                                x0 = xplan[i] 
+                                y0 = yplan[i]
+
+                                ### adicionando luas ###
+                                xm = x0-self.xxm[i]         
+                                ym = y0-self.yym[i]  
+
+                                em = self.getMatrizEstrelaManchada(self.estrelaManchada)
+                                
+                                self.curvaLuz[rangeloop[i]] = my_func.curvaLuzLua(x0,y0,xm,ym,self.Rmoon,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
+
+                                if(plota and self.curvaLuz[rangeloop[i]] != 1 and numAux<200):
+                                    plan = np.zeros(self.tamanhoMatriz*self.tamanhoMatriz)+1.
+                                    ii = np.where(((kk/self.tamanhoMatriz-y0)**2+(kk-self.tamanhoMatriz*np.fix(kk/self.tamanhoMatriz)-x0)**2 <= raioPlanetaPixel**2))
+                                    ll = np.where((kk/self.tamanhoMatriz-ym)**2+(kk-self.tamanhoMatriz*np.fix(kk/self.tamanhoMatriz)-xm)**2 <= self.Rmoon**2)
+                                    plan[ii]=0.
+                                    plan[ll]=0.
+                                    plan = plan.reshape(self.tamanhoMatriz, self.tamanhoMatriz) #posicao adicionada na matriz
+                                    plt.axis([0,self.Nx,0,self.Ny])
+                                    im = ax1.imshow(self.estrelaManchada*plan,cmap="hot", animated = True)
+                                    ims.append([im]) #armazena na animação os pontos do grafico (em imagem)
+                                    numAux+=1
+                                plota = not(plota) #variavel auxiliar que seleciona o intervalo correto para plotagem
+
+    def addCME(self, rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota): 
+        for i in range(0,len(rangeloop)):
                                 x0 = xplan[i]
                                 y0 = yplan[i]
 
@@ -312,10 +378,10 @@ class Eclipse:
                                     self.curvaLuz[rangeloop[i]]=my_func.curvaLuz(x0,y0,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
 
                                 if(plota and self.curvaLuz[rangeloop[i]] != 1 and numAux<200):
-                                    plan = np.zeros(tamanhoMatriz*tamanhoMatriz)+1. #cria a base do planeta (cheio de 1)
-                                    coroa_array = np.zeros(tamanhoMatriz*tamanhoMatriz) #cria uma base para a coroa (cheio de 0)
+                                    plan = np.zeros(self.tamanhoMatriz*self.tamanhoMatriz)+1. #cria a base do planeta (cheio de 1)
+                                    coroa_array = np.zeros(self.tamanhoMatriz*self.tamanhoMatriz) #cria uma base para a coroa (cheio de 0)
                                     
-                                    ii = np.where(((kk/tamanhoMatriz-y0)**2+(kk-tamanhoMatriz*np.fix(kk/tamanhoMatriz)-x0)**2 <= raioPlanetaPixel**2))
+                                    ii = np.where(((kk/self.tamanhoMatriz-y0)**2+(kk-self.tamanhoMatriz*np.fix(kk/self.tamanhoMatriz)-x0)**2 <= raioPlanetaPixel**2))
                                     plan[ii]=0.
 
                                     plan = plan.reshape(self.tamanhoMatriz, self.tamanhoMatriz) #posicao adicionada na matriz
@@ -338,73 +404,8 @@ class Eclipse:
                                     ims.append([im]) #armazena na animação os pontos do grafico (em imagem)
                                     numAux+=1
                                 plota = not(plota) #variavel auxiliar que seleciona o intervalo correto para plotagem
-            else:
-                for i in range(0,len(rangeloop)):
 
-                                x0 = xplan[i] 
-                                y0 = yplan[i]
-
-                                ### adicionando luas ###
-                                xm = x0-self.xxm[i]         
-                                ym = y0-self.yym[i]  
-
-                                em = self.getMatrizEstrelaManchada(self.estrelaManchada)
-                                
-                                self.curvaLuz[rangeloop[i]]=my_func.curvaLuzLua(x0,y0,xm,ym,self.Rmoon,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
-
-                                if(plota and self.curvaLuz[rangeloop[i]] != 1 and numAux<200):
-                                    plan = np.zeros(tamanhoMatriz*tamanhoMatriz)+1.
-                                    ii = np.where(((kk/tamanhoMatriz-y0)**2+(kk-tamanhoMatriz*np.fix(kk/tamanhoMatriz)-x0)**2 <= raioPlanetaPixel**2))
-                                    ll = np.where((kk/tamanhoMatriz-ym)**2+(kk-tamanhoMatriz*np.fix(kk/tamanhoMatriz)-xm)**2 <= self.Rmoon**2)
-                                    plan[ii]=0.
-                                    plan[ll]=0.
-                                    plan = plan.reshape(self.tamanhoMatriz, self.tamanhoMatriz) #posicao adicionada na matriz
-                                    plt.axis([0,self.Nx,0,self.Ny])
-                                    im = ax1.imshow(self.estrelaManchada*plan,cmap="hot", animated = True)
-                                    ims.append([im]) #armazena na animação os pontos do grafico (em imagem)
-                                    numAux+=1
-                                plota = not(plota) #variavel auxiliar que seleciona o intervalo correto para plotagem
-
-            ax2.plot(self.tempoHoras,self.curvaLuz)
-            ax2.axis([-self.tempoTotal/2,self.tempoTotal/2,min(self.curvaLuz)-0.001,1.001])
-            ani =animation.ArtistAnimation(fig, ims, interval=50, blit=True,repeat_delay=0.1)
-            
-            plt.show()
-        else:
-            #Inicio dos loops para a plotagem e calculo do trânsito
-            start = time.time()
-            if (lua == False):
-                for i in range(0,len(rangeloop)):
-
-                                x0 = xplan[i]
-                                y0 = yplan[i]
-
-                                self.curvaLuz[rangeloop[i]]=my_func.curvaLuz(x0,y0,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
-            else:
-                for i in range(0,len(rangeloop)):
-
-                                x0 = xplan[i] 
-                                y0 = yplan[i]
-
-                                ### adicionando luas ###
-                                xm = x0-self.xxm[i]         
-                                ym = y0-self.yym[i]  
-                                
-                                self.curvaLuz[rangeloop[i]]=my_func.curvaLuzLua(x0,y0,xm,ym,self.Rmoon,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
-            if(plot):
-                end = time.time()
-                print(end-start)
-                plt.plot(self.tempoHoras,self.curvaLuz)
-                plt.axis([-self.tempoTotal/2,self.tempoTotal/2,min(self.curvaLuz)-0.001,1.001])
-                plt.show()
-
-        locals().clear # Limpa qualquer possível sujeira de memória
-        del my_func
-
-        error=0
-        self.error=error
-
-
+    # NOTE: ACHO QUE POSSO APAGAR ESSA 
     def cme(self, temperatura, raio): 
         p0 = (400, 220)
         p1 = (410, 250)
@@ -438,36 +439,9 @@ class Eclipse:
         '''Retorna o parâmetro curvaLuz, representando a curva de luz da estrela que possui um planeta a orbitar nela.'''
         return self.curvaLuz
 
-    def getRaioPlan(self):
-        return self.raioPlanetaRstar
-
-    def getRplanJup(self):
-        return self.raioPlanJup
-
-    def getSemiEixo(self):
-        return self.semiEixoUA
-    
-    def getsemiEixoRaioStar(self):
-        return self.semiEixoRaioStar
-
-    def getPeriodo(self):
-        return self.periodo
-
-    def getInc(self):
-        return self.anguloInclinacao
-
-    def getEccAnom(self):
-        return self.ecc, self.anom 
-
     def getLua(self):
         return self.lua
 
-    def getError(self):
-        '''
-        Retorna o valor de erro, ocorrendo ou não algum. Se não houver erro, recebe 0. Se houver, a variável terá
-        seu valor de inicio (que é -1)
-        '''
-        return self.error
     def setEstrela(self,estrela):
         '''
         com essa funcao, é possivel passar a estrela atualizada para o eclipse que esta se formando, caso sejam adicionadas mais manchas.
@@ -490,7 +464,13 @@ class Eclipse:
         cv.line(coroa, p0, p1, intensidade, raio)
         return coroa
 
-
     def createCoroa(self): 
         matriz_cme = np.zeros((self.tamanhoMatriz, self.tamanhoMatriz))
         return matriz_cme
+
+    def getError(self):
+        '''
+        Retorna o valor de erro, ocorrendo ou não algum. Se não houver erro, recebe 0. Se houver, a variável terá
+        seu valor de inicio (que é -1)
+        '''
+        return self.error
