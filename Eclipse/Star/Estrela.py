@@ -56,16 +56,28 @@ class Estrela:
         self.tamanhoMatriz = tamanhoMatriz
         self.temperaturaEfetiva = 4875.0
 
-        #self.colors = ["gray","pink","hot"]
-        error=0
-    
+        #self.colors = ["gray","pink","hot"]    
         #start = time.time()
+        
+        self.estrelaMatriz = self.criaEstrela()
+        self.Nx = self.tamanhoMatriz
+        self.Ny = self.tamanhoMatriz
+        self.color = "hot"
+        
+        ### Prints para testes. Descomentar linhas abaixo se necessário ### 
+        #print(self.estrelaMatriz)
+        #self.color = random.choice(self.colors)
+        #Plotar(self.tamanhoMatriz,self.estrelaMatriz)
+        #end = time.time()
+        #print(end - start)
+    
+    def criaEstrela(self): 
         # Obter o caminho absoluto do diretório atual
         dir_atual = os.path.dirname(os.path.abspath(__file__))
 
         # Voltar um diretório para chegar ao diretório pai
         dir_pai = os.path.dirname(dir_atual)
-        
+
         # Verifica o SO e se o Python é 32 ou 64 bit
         if(platform.system() == "Windows"):
             if(platform.architecture()[0] == "32bit"):
@@ -82,22 +94,13 @@ class Estrela:
             my_func = CDLL(script_path)
 
         my_func.criaEstrela.restype = ndpointer(dtype=c_int, ndim=2, shape=(self.tamanhoMatriz,self.tamanhoMatriz))
-        self.estrelaMatriz = my_func.criaEstrela(self.tamanhoMatriz,self.tamanhoMatriz,self.tamanhoMatriz,c_float(self.raio),c_float(self.intensidadeMaxima),c_float(self.coeficienteHum),c_float(self.coeficienteDois))
+        estrelaMatriz = my_func.criaEstrela(self.tamanhoMatriz,self.tamanhoMatriz,self.tamanhoMatriz,c_float(self.raio),c_float(self.intensidadeMaxima),c_float(self.coeficienteHum),c_float(self.coeficienteDois))
 
         del my_func
 
-        self.error=error
-        self.Nx = self.tamanhoMatriz
-        self.Ny = self.tamanhoMatriz
-        self.color = "hot"
+        return estrelaMatriz
 
-        ### Prints para testes. Descomentar linhas abaixo se necessário ### 
-        #print(self.estrelaMatriz)
-        #self.color = random.choice(self.colors)
-        #Plotar(self.tamanhoMatriz,self.estrelaMatriz)
-        #end = time.time()
-        #print(end - start)
-    
+
     #######  Inserção de manchas
     def manchas(self,r,intensidadeMancha,lat,longt):
         '''
