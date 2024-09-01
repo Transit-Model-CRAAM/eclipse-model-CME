@@ -92,6 +92,7 @@ class Eclipse:
         self.Rmoon = Rmoon #em pixel 
         self.massM = massM
         self.tamanhoMatriz= self.Nx
+
         #coletando dados da lua
         self.ppMoon = moon.getppMoon(self.tamanhoMatriz)
         self.xl = moon.getxl()
