@@ -256,7 +256,7 @@ class Eclipse:
             numAux = 0 #variavel FLAG que indica quantidade de imagens no vetor de PLOT
 
             print("\nAguarde um momento, a animacao do trânsito está sendo gerada...\n")
-            
+
             if (cme):
                 self.addCME(rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota)
             elif (lua):
@@ -319,6 +319,8 @@ class Eclipse:
         self.error=error
 
     def addLua(self, rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota): 
+         em = self.getMatrizEstrelaManchada(self.estrelaManchada)
+
          for i in range(0,len(rangeloop)):
                                 x0 = xplan[i] 
                                 y0 = yplan[i]
@@ -326,8 +328,6 @@ class Eclipse:
                                 ### adicionando luas ###
                                 xm = x0-self.xxm[i]         
                                 ym = y0-self.yym[i]  
-
-                                em = self.getMatrizEstrelaManchada(self.estrelaManchada)
                                 
                                 self.curvaLuz[rangeloop[i]] = my_func.curvaLuzLua(x0,y0,xm,ym,self.Rmoon,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
 
