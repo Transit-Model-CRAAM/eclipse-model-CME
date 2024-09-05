@@ -83,19 +83,20 @@ class Eclipse:
     #a partir do momento em que a lua é instanciada na main, esses objetos se tornam objetos da classe com self.
     def criarLua(self, moon: Moon):
         moon.moonOrbit()
-        Rmoon = moon.getRmoon()
 
         #coleta de dados necessarias para a plotagem do eclipse
         self.xxm = moon.getxm()
         self.yym = moon.getym()
-        self.Rmoon = Rmoon #em pixel 
+        self.Rmoon = moon.getRmoon() #em pixel 
         self.massM = moon.massM
         self.tamanhoMatriz= self.Nx
 
         #coletando dados da lua
         self.ppMoon = moon.getppMoon(self.tamanhoMatriz)
+
         self.xl = moon.getxl()
         self.yl = moon.getyl()
+        self.moon = moon 
         return moon
         
     def criarEclipse(self, lua, cme, anim=True, plot=True):
@@ -319,7 +320,11 @@ class Eclipse:
 
     def addLua(self, rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota): 
          em = self.getMatrizEstrelaManchada(self.estrelaManchada)
-
+         print("LUA::::",self.moon)
+         print("LUA::::",self.moon.Rmoon)
+         print("LUA::::",self.moon.distancia)
+         print("LUA::::",self.moon.dmoon)
+         print("LUA::::",self.moon.massM)
          for i in range(0,len(rangeloop)):
                                 x0 = xplan[i] 
                                 y0 = yplan[i]
