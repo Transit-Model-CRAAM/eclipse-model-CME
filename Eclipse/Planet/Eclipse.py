@@ -81,16 +81,15 @@ class Eclipse:
         self.tempoHoras= tempoHoras
 
     #a partir do momento em que a lua é instanciada na main, esses objetos se tornam objetos da classe com self.
-    def criarLua(self, raioM, massM, raioPlanetaPixel, raioStar,tempoHoras,anguloInclinacao,periodo,distancia):
-        moon = Moon(raioM, massM, self.raioEstrelaPixel,anguloInclinacao ,periodo, raioPlanetaPixel, self.tempoHoras,distancia)
-        moon.moonOrbit(raioStar)
+    def criarLua(self, moon: Moon):
+        moon.moonOrbit()
         Rmoon = moon.getRmoon()
 
         #coleta de dados necessarias para a plotagem do eclipse
         self.xxm = moon.getxm()
         self.yym = moon.getym()
         self.Rmoon = Rmoon #em pixel 
-        self.massM = massM
+        self.massM = moon.massM
         self.tamanhoMatriz= self.Nx
 
         #coletando dados da lua
