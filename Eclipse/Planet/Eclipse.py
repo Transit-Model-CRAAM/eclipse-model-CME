@@ -40,10 +40,7 @@ import platform
 class Eclipse:
 
    
-    def __init__(self,Nx,Ny,raioEstrelaPixel,estrelaManchada: Estrela, planeta: Planeta):
-        
-        self.planeta = planeta
-
+    def __init__(self, Nx, Ny, raio_estrela_pixel, estrela_manchada: Estrela, planeta_: Planeta):
         '''
         :parâmetro Nx e Ny: tamanho da matriz estrela 
         :parâmetro raioEstrelaPixel: raio da estrela em pixel 
@@ -51,11 +48,21 @@ class Eclipse:
         '''
         self.Nx = Nx
         self.Ny = Ny
-        self.raioEstrelaPixel = raioEstrelaPixel
-        self.estrelaManchada = estrelaManchada
-        self.ejecaoMassa = self.getMatrizEstrelaManchada(self.estrelaManchada)
         self.intervaloTempo = 1
         self.tamanhoMatriz = self.Nx #Nx ou Ny
+
+        
+        # Estrela 
+        self.raio_estrela_pixel = raio_estrela_pixel
+        self.estrela_  = estrela_manchada
+        self.estrela_matriz = estrela_manchada.getMatrizEstrela()
+
+        # Planeta
+        self.planeta_ = planeta_
+
+        # Ruídos 
+        self.ejecaoMassa = self.getMatrizTransformada(self.estrela_matriz)
+       
         
         # OUTPUT
         self.curvaLuz = [ 1.0 for i in range(self.Nx)]
@@ -83,7 +90,7 @@ class Eclipse:
     #a partir do momento em que a lua é instanciada na main, esses objetos se tornam objetos da classe com self.
     def criarLua(self, moon: Moon):
         moon.moonOrbit()
-        self.planeta.addLua(moon)
+        self.planeta_.addLua(moon)
         
     def criarEclipse(self, lua, cme, anim=True, plot=True):
 
@@ -99,8 +106,8 @@ class Eclipse:
         :parâmetro raioPlanetaRstar: raio do planeta em relacao ao raio da estrela 
         :parâmetro raioPlanJup: raio do planeta em relacao ao raio de Jupiter
         :parâmetro lua: lua que orbita o planeta (entra como True or False)
-        :parâmetro self.planeta.ecc: excêntricidade da órbita do planeta
-        :parâmetro self.planeta.anom: self.planeta.anomalia da órbita do planeta
+        :parâmetro self.planeta_.ecc: excêntricidade da órbita do planeta
+        :parâmetro self.planeta_.anom: self.planeta_.anomalia da órbita do planeta
         :parâmetro anim: verifica se a animação será mostrada para o usuário (True por default)
         :parâmetro plot: verifica se o gráfico da curva de luz será mostrado para o usuário (True por default)
         '''
@@ -109,7 +116,8 @@ class Eclipse:
         tamanhoMatriz = self.tamanhoMatriz
         self.lua = lua
         dtor = np.pi/180.
-        semiEixoPixel = self.planeta.semiEixoRaioStar * self.raioEstrelaPixel
+        semiEixoPixel = self.planeta_.semiEixoRaioStar * self.raio_estrela_pixel
+        self.geraTempoHoras()
 
         '''Inicio do calculo do TEMPO TOTAL de trânsito através dos parâmetros passados ao planeta.'''
 
@@ -121,31 +129,31 @@ class Eclipse:
         :parâmetro yplaneta: y na matriz que projetará o planeta
         '''
 
-        nk = 2*np.pi/(self.planeta.periodo * 24)    # em horas^(-1)
-        Tp = self.planeta.periodo*self.planeta.anom/360. * 24. # tempo do pericentro (em horas)
+        nk = 2*np.pi/(self.planeta_.periodo * 24)    # em horas^(-1)
+        Tp = self.planeta_.periodo*self.planeta_.anom/360. * 24. # tempo do pericentro (em horas)
         m = nk*(self.tempoHoras-Tp)     # em radianos
 
-        # calculando a self.planeta.anomalia excentrica em radianos
+        # calculando a self.planeta_.anomalia excentrica em radianos
         
-        eccanom = solve(m,self.planeta.ecc)  # subrotina em anexo
-        xs = semiEixoPixel*(np.cos(eccanom)-self.planeta.ecc)
-        ys = semiEixoPixel*(math.sqrt(1-(self.planeta.ecc**2))*np.sin(eccanom))
+        eccanom = solve(m,self.planeta_.ecc)  # subrotina em anexo
+        xs = semiEixoPixel*(np.cos(eccanom)-self.planeta_.ecc)
+        ys = semiEixoPixel*(math.sqrt(1-(self.planeta_.ecc**2))*np.sin(eccanom))
 
-        ang = self.planeta.anom*dtor-(np.pi/2)
+        ang = self.planeta_.anom*dtor-(np.pi/2)
         xp = xs*np.cos(ang)-ys*np.sin(ang)
         yp = xs*np.sin(ang)+ys*np.cos(ang)
 
         ie, = np.where(self.tempoHoras == min(abs(self.tempoHoras)))
 
         xplaneta = xp-xp[ie[0]]
-        yplaneta = yp*np.cos(self.planeta.anguloInclinacao*dtor)
+        yplaneta = yp*np.cos(self.planeta_.anguloInclinacao*dtor)
 
         #### Intervalo para calculo do transito
         pp, = np.where((abs(xplaneta) < 1.2 * tamanhoMatriz/2) & (abs(yplaneta) < tamanhoMatriz/2)) #rearranja o vetor apenas com os pontos necessários para a análise da curva de luz
         xplan = xplaneta[pp] + tamanhoMatriz/2
         yplan = yplaneta[pp] + tamanhoMatriz/2
 
-        raioPlanetaPixel = self.planeta.raioPlanetaRstar * self.raioEstrelaPixel
+        raioPlanetaPixel = self.planeta_.raioPlanetaRstar * self.raio_estrela_pixel
 
         '''
         Inicio do calculo do tempo em Horas e da curva de Luz na matriz
@@ -155,10 +163,10 @@ class Eclipse:
         :parâmetro curvaLuz: calcula a curva de luz do transito do planeta ao eclipsar a estrela, também se torna 
         objeto de Eclipse       
         '''
-        latitudeTransito = -np.arcsin(self.planeta.semiEixoRaioStar*np.cos(self.planeta.anguloInclinacao*dtor))/dtor # latitude Sul (arbitraria)
+        latitudeTransito = -np.arcsin(self.planeta_.semiEixoRaioStar*np.cos(self.planeta_.anguloInclinacao*dtor))/dtor # latitude Sul (arbitraria)
         
         # duracao do transito em horas
-        duracaoTransito=2 * (90.-np.arccos((np.cos(latitudeTransito*dtor))/self.planeta.semiEixoRaioStar)/dtor)*self.planeta.periodo/360*24. 
+        duracaoTransito=2 * (90.-np.arccos((np.cos(latitudeTransito*dtor))/self.planeta_.semiEixoRaioStar)/dtor)*self.planeta_.periodo/360*24. 
         tempoTotal = 3*duracaoTransito
         self.tempoTotal= tempoTotal
 
@@ -222,9 +230,9 @@ class Eclipse:
         '''
         #Inicio dos loops para a plotagem e calculo do trânsito
         # maximo da curva de luz, usado na normalizacao da intensidade
-        maxCurvaLuz = np.sum(self.estrelaManchada)
+        maxCurvaLuz = np.sum(self.estrela_matriz)
 
-        em = self.getMatrizEstrelaManchada(self.estrelaManchada)
+        em = self.getMatrizTransformada(self.estrela_matriz)
 
         if(anim):
             #criacao de variaveis para plotagem da animacao 
@@ -238,11 +246,11 @@ class Eclipse:
             if (cme):
                 self.addCME(rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota)
             elif (lua):
-                print(self.planeta.luas)
+                print(self.planeta_.luas)
                 tamPp = len(pp)
                 tamLoop = len(rangeloop)
 
-                for lua in self.planeta.luas: 
+                for lua in self.planeta_.luas: 
                     ppMoon = lua.getppMoon(self.tamanhoMatriz)
                     tamMoon = len(ppMoon)
                     
@@ -272,7 +280,7 @@ class Eclipse:
                                     plan[ii]=0.
                                     plan = plan.reshape(self.tamanhoMatriz, self.tamanhoMatriz) #posicao adicionada na matriz
                                     plt.axis([0,self.Nx,0,self.Ny])
-                                    im = ax1.imshow(self.estrelaManchada*plan,cmap="hot", animated = True)
+                                    im = ax1.imshow(self.estrela_matriz*plan,cmap="hot", animated = True)
                                     ims.append([im]) #armazena na animação os pontos do grafico (em imagem)
                                     numAux+=1
                                 plota = not(plota) #variavel auxiliar que seleciona o intervalo correto para plotagem
@@ -295,7 +303,7 @@ class Eclipse:
             else:
                 for i in range(0,len(rangeloop)):
                                 ### adicionando luas ###
-                                for lua in self.planeta.luas: 
+                                for lua in self.planeta_.luas: 
                                     x0 = xplan[i] 
                                     y0 = yplan[i]
 
@@ -312,15 +320,14 @@ class Eclipse:
                 plt.plot(self.tempoHoras,self.curvaLuz)
                 plt.axis([-self.tempoTotal/2,self.tempoTotal/2,min(self.curvaLuz)-0.001,1.001])
                 plt.show()
-
+        
         locals().clear # Limpa qualquer possível sujeira de memória
         del my_func
-
         error=0
         self.error=error
 
     def addLua(self, rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota, lua): 
-                    em = self.getMatrizEstrelaManchada(self.estrelaManchada)
+                    em = self.getMatrizTransformada(self.estrela_matriz)
                     for i in range(0,len(rangeloop)):
                                     x0 = xplan[i] 
                                     y0 = yplan[i]
@@ -342,7 +349,7 @@ class Eclipse:
                                         plan = plan.reshape(self.tamanhoMatriz, self.tamanhoMatriz) #posicao adicionada na matriz
                                         plt.axis([0,self.Nx,0,self.Ny])
                                         
-                                        im = ax1.imshow(self.estrelaManchada*plan,cmap="hot", animated = True)
+                                        im = ax1.imshow(self.estrela_matriz*plan,cmap="hot", animated = True)
                                         ims.append([im]) #armazena na animação os pontos do grafico (em imagem)
                                         numAux+=1
                                     plota = not(plota) #variavel auxiliar que seleciona o intervalo correto para plotagem
@@ -360,23 +367,23 @@ class Eclipse:
 
                                 # quando a altura da cme atingir o planeta (colocar caluclo da velocidade da cme por tempo de trânsito)
                                 if (i >= len(rangeloop)/3): 
-                                    coroa = self.ejecaoDeMassa(temperatura_cme, raio_cme)
+                                    coroa = self.estrela_.ejecaoDeMassa(temperatura_cme, raio_cme)
                                     # opacidade CME 
                                     opacidade_cme = 0.3
                                     # maximo da curva de luz, usado na normalizacao da intensidade
-                                    maxCurvaLuz = np.sum(self.estrelaManchada)
+                                    maxCurvaLuz = np.sum(self.estrela_matriz)
                                     # Soma entre cme e planeta e depois multiplica o resultado pela estrela 
-                                    em = self.getMatrizEstrelaManchada(coroa)
+                                    em = self.getMatrizTransformada(coroa)
                                     self.curvaLuz[rangeloop[i]]=my_func.curvaLuzCME(x0,y0,self.tamanhoMatriz,raioPlanetaPixel,self.ejecaoMassa,kk2,maxCurvaLuz, em, opacidade_cme)
                                 
                                 else: 
-                                    estrela_manchada_cme = np.copy(self.estrelaManchada)
+                                    estrela_manchada_cme = np.copy(self.estrela_matriz)
                                     # Assinatura de manchas
                                     estrela_manchada_cme = self.cmeNoTransito(estrela_manchada_cme, temperatura_cme, raio_cme)
                                     # maximo da curva de luz, usado na normalizacao da intensidade
-                                    maxCurvaLuz = np.sum(self.estrelaManchada)
+                                    maxCurvaLuz = np.sum(self.estrela_matriz)
                                     # Matriz em auxiliar para ser passada como parametro para o script em C, que é transformada em c_double
-                                    em = self.getMatrizEstrelaManchada(estrela_manchada_cme)
+                                    em = self.getMatrizTransformada(estrela_manchada_cme)
 
                                     # to - do: mudar self.ejecaoMassa para self.atividadeEstrela
                                     self.curvaLuz[rangeloop[i]]=my_func.curvaLuz(x0,y0,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
@@ -400,10 +407,10 @@ class Eclipse:
                                         common_indices = np.intersect1d(ii, jj) #indices que sao sobrepostos entre cme e planeta
                                         coroa_array[common_indices] = coroa[common_indices] * opacidade_cme 
                                         coroa_array = coroa_array.reshape(self.tamanhoMatriz, self.tamanhoMatriz) #transforma em vetor
-                                        plot_estrela = self.estrelaManchada*plan + coroa_array #multiplica o planeta na estrela e soma o valor da cme
+                                        plot_estrela = self.estrela_matriz*plan + coroa_array #multiplica o planeta na estrela e soma o valor da cme
                                         im = ax1.imshow(plot_estrela, cmap="hot", animated = True)
                                     else:
-                                        im = ax1.imshow(self.estrelaManchada*plan,cmap="hot", animated = True)
+                                        im = ax1.imshow(self.estrela_matriz*plan,cmap="hot", animated = True)
                                     
                                     ims.append([im]) #armazena na animação os pontos do grafico (em imagem)
                                     numAux+=1
@@ -415,14 +422,14 @@ class Eclipse:
         p1 = (410, 250)
         intensidade = (temperatura * 240) / 4875.0
 
-        cv.line(self.estrelaManchada, p0, p1, intensidade, raio)
-        return self.estrelaManchada
+        cv.line(self.estrela_matriz, p0, p1, intensidade, raio)
+        return self.estrela_matriz
 
 
-    def getMatrizEstrelaManchada(self, estrela): 
-        matrixAux = np.array(estrela, dtype=np.float64)
-        matrizEstrelaManchada = matrixAux.ctypes.data_as(POINTER(c_double))
-        return matrizEstrelaManchada
+    def getMatrizTransformada(self, estrela):
+        matriz_aux = np.array(estrela, dtype=np.float64)
+        matriz_estrela_manchada = matriz_aux.ctypes.data_as(POINTER(c_double))
+        return matriz_estrela_manchada
 
     def cmeNoTransito(self, em, temperatura, raio): 
         p0 = (400, 220)
@@ -450,7 +457,7 @@ class Eclipse:
         '''
         com essa funcao, é possivel passar a estrela atualizada para o eclipse que esta se formando, caso sejam adicionadas mais manchas.
         '''
-        self.estrelaManchada = estrela
+        self.estrela_matriz = estrela
 
     def ejecaoDeMassa(self, temperatura, raio): 
         # latitude 

@@ -49,7 +49,7 @@ class Estrela:
     def __init__(self,raio,raioSun,intensidadeMaxima,coeficienteHum,coeficienteDois,tamanhoMatriz):
         
         self.raio = raio # em pixel
-        self.raioSun = raioSun # em relacao ao raio do Sol
+        self.raioSun = raioSun * 696340 # em relacao ao raio do Sol
         self.intensidadeMaxima = intensidadeMaxima
         self.coeficienteHum = coeficienteHum
         self.coeficienteDois = coeficienteDois
@@ -224,7 +224,6 @@ class Estrela:
         return self.estrelaMatriz #retorna a decisão: se há flare ou não 
 
     #### Inserção de flares
-
     def ejecaoDeMassa(self, temperatura, raio): 
         # latitude 
         # longitude 
@@ -264,7 +263,7 @@ class Estrela:
         relação ao raio da estrela.
         '''
         return self.raio
-    def getEstrela(self):
+    def getMatrizEstrela(self):
         '''
         Retorna a estrela, plotada sem as manchas, necessário caso o usuário escolha a plotagem sem manchas.
         '''
