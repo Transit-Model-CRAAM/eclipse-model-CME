@@ -2,8 +2,9 @@ from Planet.Moon import Moon
 
 class Planeta: 
 
-    def __init__(self, semiEixoUA, raioPlanJup, periodo, anguloInclinacao, ecc, anom, raioStar, mass, moon: Moon = ()): 
-        self.lua = moon # NOTE: Lua opcional?
+    def __init__(self, semiEixoUA, raioPlanJup, periodo, anguloInclinacao, ecc, anom, raioStar, mass): 
+        self.luas = []
+
         self.semiEixoUA = semiEixoUA
         self.raioPlanJup = raioPlanJup
         self.periodo = periodo
@@ -18,6 +19,7 @@ class Planeta:
         # NOTE:: semiEixoPixel = self.semiEixoRaioStar * self.raioEstrelaPixel #nao sei se vou precisar
         self.raioPlanetaRstar = self.calcRaioPlanetaRaioStar(raioStar)
 
+    ### Base funcionts 
     def calcSemEixoRaioStar(self, raioStar): 
         return ((1.469*(10**8))*self.semiEixoUA)/raioStar
     
@@ -47,3 +49,8 @@ class Planeta:
 
     def getEccAnom(self):
         return self.ecc, self.anom 
+
+    ### Adding Moons in Planet 
+    def addLua(self,lua: Moon): 
+        self.luas.append(lua)
+        

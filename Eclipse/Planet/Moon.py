@@ -1,3 +1,4 @@
+import string
 import numpy as np
 import math
 
@@ -88,3 +89,6 @@ class Moon:
 
     def getym(self):
         return self.ym
+
+    def setMoonName(self, name: string): 
+        self.name = name

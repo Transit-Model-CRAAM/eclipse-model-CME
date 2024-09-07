@@ -83,21 +83,7 @@ class Eclipse:
     #a partir do momento em que a lua é instanciada na main, esses objetos se tornam objetos da classe com self.
     def criarLua(self, moon: Moon):
         moon.moonOrbit()
-
-        #coleta de dados necessarias para a plotagem do eclipse
-        self.xxm = moon.getxm()
-        self.yym = moon.getym()
-        self.Rmoon = moon.getRmoon() #em pixel 
-        self.massM = moon.massM
-        self.tamanhoMatriz= self.Nx
-
-        #coletando dados da lua
-        self.ppMoon = moon.getppMoon(self.tamanhoMatriz)
-
-        self.xl = moon.getxl()
-        self.yl = moon.getyl()
-        self.moon = moon 
-        return moon
+        self.planeta.addLua(moon)
         
     def criarEclipse(self, lua, cme, anim=True, plot=True):
 
@@ -180,15 +166,7 @@ class Eclipse:
         nn=np.fix(tempoTotal*60./intervaloTempo)
 
         #seleciona a maior orbita para que a curva de luz seja plotada de maneira correta (observando ela inteira)
-        if(lua == True):
-            if (len(pp)>len(self.ppMoon)):
-                rangeloop = pp
-            else: 
-                rangeloop = self.ppMoon
-                xplan = xplaneta[self.ppMoon] + tamanhoMatriz/2 #x plan e y plan se alteram caso haja o acrescimo de luas 
-                yplan = yplaneta[self.ppMoon] + tamanhoMatriz/2
-        else:
-            rangeloop = pp
+        rangeloop = pp
 
         ''''
         Curva de Luz e normalização da intensidade
@@ -260,7 +238,26 @@ class Eclipse:
             if (cme):
                 self.addCME(rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota)
             elif (lua):
-                self.addLua(rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota)
+                print(self.planeta.luas)
+                tamPp = len(pp)
+                tamLoop = len(rangeloop)
+
+                for lua in self.planeta.luas: 
+                    ppMoon = lua.getppMoon(self.tamanhoMatriz)
+                    tamMoon = len(ppMoon)
+                    
+                    print("LUA:::::",lua.name)
+                    if (tamPp > tamMoon):
+                        rangeloop = pp
+                    else: 
+                        if (tamLoop < tamMoon):
+                            rangeloop = ppMoon
+                    
+                        xplan = xplaneta[ppMoon] + tamanhoMatriz/2 #x plan e y plan se alteram caso haja o acrescimo de luas 
+                        yplan = yplaneta[ppMoon] + tamanhoMatriz/2
+                    
+                    ### Adiciona lua ao eclipse
+                    self.addLua(rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota, lua)
             else : 
                 for i in range(0,len(rangeloop)):
 
@@ -297,14 +294,18 @@ class Eclipse:
                                 self.curvaLuz[rangeloop[i]] = my_func.curvaLuz(x0,y0,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
             else:
                 for i in range(0,len(rangeloop)):
-                                x0 = xplan[i] 
-                                y0 = yplan[i]
-
                                 ### adicionando luas ###
-                                xm = x0-self.xxm[i]         
-                                ym = y0-self.yym[i]  
+                                for lua in self.planeta.luas: 
+                                    x0 = xplan[i] 
+                                    y0 = yplan[i]
+
+                                    xxm = lua.getxm()
+                                    yym = lua.getxym()
+
+                                    xm = x0-xxm[i]         
+                                    ym = y0-yym[i]  
                                 
-                                self.curvaLuz[rangeloop[i]] = my_func.curvaLuzLua(x0,y0,xm,ym,self.Rmoon,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
+                                    self.curvaLuz[rangeloop[i]] = my_func.curvaLuzLua(x0,y0,xm,ym,lua.Rmoon,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
             if(plot):
                 end = time.time()
                 print(end-start)
@@ -318,35 +319,33 @@ class Eclipse:
         error=0
         self.error=error
 
-    def addLua(self, rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota): 
-         em = self.getMatrizEstrelaManchada(self.estrelaManchada)
-         print("LUA::::",self.moon)
-         print("LUA::::",self.moon.Rmoon)
-         print("LUA::::",self.moon.distancia)
-         print("LUA::::",self.moon.dmoon)
-         print("LUA::::",self.moon.massM)
-         for i in range(0,len(rangeloop)):
-                                x0 = xplan[i] 
-                                y0 = yplan[i]
-
+    def addLua(self, rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota, lua): 
+                    em = self.getMatrizEstrelaManchada(self.estrelaManchada)
+                    for i in range(0,len(rangeloop)):
+                                    x0 = xplan[i] 
+                                    y0 = yplan[i]
                                 ### adicionando luas ###
-                                xm = x0-self.xxm[i]         
-                                ym = y0-self.yym[i]  
-                                
-                                self.curvaLuz[rangeloop[i]] = my_func.curvaLuzLua(x0,y0,xm,ym,self.Rmoon,self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
+                                    xxm = lua.getxm()
+                                    yym = lua.getym()
 
-                                if(plota and self.curvaLuz[rangeloop[i]] != 1 and numAux<200):
-                                    plan = np.zeros(self.tamanhoMatriz*self.tamanhoMatriz)+1.
-                                    ii = np.where(((kk/self.tamanhoMatriz-y0)**2+(kk-self.tamanhoMatriz*np.fix(kk/self.tamanhoMatriz)-x0)**2 <= raioPlanetaPixel**2))
-                                    ll = np.where((kk/self.tamanhoMatriz-ym)**2+(kk-self.tamanhoMatriz*np.fix(kk/self.tamanhoMatriz)-xm)**2 <= self.Rmoon**2)
-                                    plan[ii]=0.
-                                    plan[ll]=0.
-                                    plan = plan.reshape(self.tamanhoMatriz, self.tamanhoMatriz) #posicao adicionada na matriz
-                                    plt.axis([0,self.Nx,0,self.Ny])
-                                    im = ax1.imshow(self.estrelaManchada*plan,cmap="hot", animated = True)
-                                    ims.append([im]) #armazena na animação os pontos do grafico (em imagem)
-                                    numAux+=1
-                                plota = not(plota) #variavel auxiliar que seleciona o intervalo correto para plotagem
+                                    xm = x0-xxm[i]         
+                                    ym = y0-yym[i]  
+                                
+                                    self.curvaLuz[rangeloop[i]] = my_func.curvaLuzLua(x0,y0,xm,ym,lua.getRmoon(),self.tamanhoMatriz,raioPlanetaPixel,em,kk2,maxCurvaLuz)
+
+                                    if(plota and self.curvaLuz[rangeloop[i]] != 1 and numAux<200):
+                                        plan = np.zeros(self.tamanhoMatriz*self.tamanhoMatriz)+1.
+                                        ii = np.where(((kk/self.tamanhoMatriz-y0)**2+(kk-self.tamanhoMatriz*np.fix(kk/self.tamanhoMatriz)-x0)**2 <= raioPlanetaPixel**2))
+                                        ll = np.where((kk/self.tamanhoMatriz-ym)**2+(kk-self.tamanhoMatriz*np.fix(kk/self.tamanhoMatriz)-xm)**2 <= lua.getRmoon()**2)
+                                        plan[ii]=0.
+                                        plan[ll]=0.
+                                        plan = plan.reshape(self.tamanhoMatriz, self.tamanhoMatriz) #posicao adicionada na matriz
+                                        plt.axis([0,self.Nx,0,self.Ny])
+                                        
+                                        im = ax1.imshow(self.estrelaManchada*plan,cmap="hot", animated = True)
+                                        ims.append([im]) #armazena na animação os pontos do grafico (em imagem)
+                                        numAux+=1
+                                    plota = not(plota) #variavel auxiliar que seleciona o intervalo correto para plotagem
 
     def addCME(self, rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota): 
         for i in range(0,len(rangeloop)):
