@@ -2,7 +2,7 @@ from Planet.Moon import Moon
 
 class Planeta: 
 
-    def __init__(self, semiEixoUA, raioPlanJup, periodo, anguloInclinacao, ecc, anom, raioStar, mass): 
+    def __init__(self, semiEixoUA, raioPlanJup, periodo, anguloInclinacao, ecc, anom, raioStar,mass): 
         self.luas = []
 
         self.semiEixoUA = semiEixoUA
@@ -21,13 +21,13 @@ class Planeta:
 
     ### Base funcionts 
     def calcSemEixoRaioStar(self, raioStar): 
-        return ((1.469*(10**8))*self.semiEixoUA)/raioStar
+        return (((1.469*(10**8))*self.semiEixoUA))/raioStar
     
     def calcRaioPlanetaRaioStar(self, raioStar): 
         return (self.raioPlanJup*69911)/raioStar # multiplicando pelo raio de jupiter em km 
 
-    def getRaioPlanPixel(self, raioEstrelaPixel): 
-        return self.raioPlanetaRstar * raioEstrelaPixel
+    def getRaioPlanPixel(self, raioEstrelaPixel, raioStar): 
+        return raioEstrelaPixel * ((self.raioPlanJup*69911)/(raioStar))
     
     def getRaioPlan(self):
         return self.raioPlanetaRstar
@@ -53,4 +53,7 @@ class Planeta:
     ### Adding Moons in Planet 
     def addLua(self,lua: Moon): 
         self.luas.append(lua)
+
+    def hasMoons(self): 
+        return len(self.luas) != 0
         

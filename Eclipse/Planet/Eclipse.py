@@ -27,7 +27,7 @@ from matplotlib import pyplot
 from Star.Estrela import Estrela
 from Planet.Moon import Moon
 from Planet.Planeta import Planeta
-from Misc.Verify import Validar
+from Misc.Verify  import calculaLat
 #from keplerAux import keplerfunc  #biblioteca auxiliar caso a biblioteca kepler nao funcione
 import matplotlib.animation as animation
 from kepler._core import solve #para o calculo de orbitas excentricas (pip install kepler)
@@ -67,16 +67,13 @@ class Eclipse:
         # OUTPUT
         self.curvaLuz = [ 1.0 for i in range(self.Nx)]
 
-    def geraTempoHoras(self):
+    def geraTempoHoras(self, intervalo):
         '''
         Função chamada na Main para o cálculo do tempo de Trânsito em Horas
         '''
         #x=int(input("Intervalo de tempo=1. Deseja alterar? 1. SIM | 2. NÃO: "))
-        x=2
-        if x ==1:
-            self.intervaloTempo=float(input('Digite o intervalo de tempo em minutos: '))
-        elif x==2:
-            self.intervaloTempo = 1.   # em minutos
+        
+        self.intervaloTempo = intervalo
 
         tempoHoras = (np.arange(self.tamanhoMatriz)-self.tamanhoMatriz/2)*self.intervaloTempo/60.   # em horas
         self.tempoHoras= tempoHoras
@@ -92,7 +89,7 @@ class Eclipse:
         moon.moonOrbit()
         self.planeta_.addLua(moon)
         
-    def criarEclipse(self, lua, cme, anim=True, plot=True):
+    def criarEclipse(self, cme, anim=True, plot=True):
 
         '''
         Criação da classe eclipse, que retornará a curva de luz do trânsito do planeta ao redor da estrela
@@ -114,10 +111,9 @@ class Eclipse:
         
         intervaloTempo = self.intervaloTempo
         tamanhoMatriz = self.tamanhoMatriz
-        self.lua = lua
         dtor = np.pi/180.
         semiEixoPixel = self.planeta_.semiEixoRaioStar * self.raio_estrela_pixel
-        self.geraTempoHoras()
+        self.geraTempoHoras(1)
 
         '''Inicio do calculo do TEMPO TOTAL de trânsito através dos parâmetros passados ao planeta.'''
 
@@ -245,8 +241,7 @@ class Eclipse:
 
             if (cme):
                 self.addCME(rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota)
-            elif (lua):
-                print(self.planeta_.luas)
+            elif (self.planeta_.hasMoons()):
                 tamPp = len(pp)
                 tamLoop = len(rangeloop)
 
@@ -261,8 +256,8 @@ class Eclipse:
                         if (tamLoop < tamMoon):
                             rangeloop = ppMoon
                     
-                        xplan = xplaneta[ppMoon] + tamanhoMatriz/2 #x plan e y plan se alteram caso haja o acrescimo de luas 
-                        yplan = yplaneta[ppMoon] + tamanhoMatriz/2
+                        xplan = xplaneta[ppMoon] + self.tamanhoMatriz/2 # x plan e y plan se alteram caso haja o acrescimo de luas 
+                        yplan = yplaneta[ppMoon] + self.tamanhoMatriz/2
                     
                     ### Adiciona lua ao eclipse
                     self.addLua(rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota, lua)
@@ -293,7 +288,7 @@ class Eclipse:
         else:
             #Inicio dos loops para a plotagem e calculo do trânsito
             start = time.time()
-            if (lua == False):
+            if (self.planeta_.hasMoons() == False):
                 for i in range(0,len(rangeloop)):
 
                                 x0 = xplan[i]
@@ -323,11 +318,10 @@ class Eclipse:
         
         locals().clear # Limpa qualquer possível sujeira de memória
         del my_func
-        error=0
-        self.error=error
 
     def addLua(self, rangeloop, xplan, yplan, raioPlanetaPixel, kk2, maxCurvaLuz, numAux, ims, ax1, kk, my_func, plota, lua): 
                     em = self.getMatrizTransformada(self.estrela_matriz)
+                    
                     for i in range(0,len(rangeloop)):
                                     x0 = xplan[i] 
                                     y0 = yplan[i]
@@ -416,6 +410,11 @@ class Eclipse:
                                     numAux+=1
                                 plota = not(plota) #variavel auxiliar que seleciona o intervalo correto para plotagem
 
+    def calculaLatMancha(self): 
+        latsugerida = calculaLat(self.planeta_.semiEixoRaioStar, self.planeta_.anguloInclinacao)
+        print("A latitude sugerida para que a mancha influencie na curva de luz da estrela é:", latsugerida)
+        return latsugerida
+
     # NOTE: ACHO QUE POSSO APAGAR ESSA 
     def cme(self, temperatura, raio): 
         p0 = (400, 220)
@@ -450,8 +449,8 @@ class Eclipse:
         '''Retorna o parâmetro curvaLuz, representando a curva de luz da estrela que possui um planeta a orbitar nela.'''
         return self.curvaLuz
 
-    def getLua(self):
-        return self.lua
+    def getLuas(self):
+        return self.planeta_.luas
 
     def setEstrela(self,estrela):
         '''

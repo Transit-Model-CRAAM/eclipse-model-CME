@@ -18,6 +18,7 @@ verify:função criada para validar entradas, por exemplo numeros nao float/int 
 '''
 
 
+from typing import List
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import numpy as np
@@ -63,6 +64,9 @@ class Estrela:
         self.Nx = self.tamanhoMatriz
         self.Ny = self.tamanhoMatriz
         self.color = "hot"
+
+        self.manchas: List[Estrela.Mancha] = []
+        self.faculas: List[Estrela.Facula] = []
         
         ### Prints para testes. Descomentar linhas abaixo se necessário ### 
         #print(self.estrelaMatriz)
@@ -71,6 +75,20 @@ class Estrela:
         #end = time.time()
         #print(end - start)
     
+    class Mancha: 
+        def __init__(self, intensidade, raio, latitude, longitude):
+            self.intensidade = intensidade # em relacao a intensidade da estrela (menor que 1)
+            self.raio = raio # em relacao ao raio da estrela
+            self.latitude = latitude 
+            self.longitude = longitude
+
+    class Facula:
+        def __init__(self, intensidade, raio, latitude, longitude):
+            self.intensidade = intensidade # em relacao a intensidade da estrela (maior que 1)
+            self.raio = raio # em relacao ao raio da estrela
+            self.latitude = latitude 
+            self.longitude = longitude
+
     def criaEstrela(self): 
         # Obter o caminho absoluto do diretório atual
         dir_atual = os.path.dirname(os.path.abspath(__file__))
@@ -99,77 +117,84 @@ class Estrela:
         del my_func
 
         return estrelaMatriz
+        
+    '''
+    Ruidos podem ser Manchas ou Fáculas
+    '''
+    def criaRuidos(self, ruidos): 
+        for ruido in ruidos:
+            raio_mancha_pixel = self.raio * ruido.raio # raio em funcao do raio da estrela em pixels
 
+            #coordenadas de posicionamento da mancha em graus
+            
+            degreeToRadian = np.pi/180. #A read-only variable containing the floating-point value used to convert degrees to radians.
+            latitudeMancha  = ruido.latitude * degreeToRadian 
+            longitudeMancha =  ruido.longitude * degreeToRadian
 
+            #posicao da mancha em pixels em relacao ao centro da estrela
+            ys = self.raio*np.sin(latitudeMancha)  
+            xs = self.raio*np.cos(latitudeMancha)*np.sin(longitudeMancha)
+            anguloHelio = np.arccos(np.cos(latitudeMancha)*np.cos(longitudeMancha))
+
+            # efeito de projecao pela mancha estar a um anguloHeliocentrico do centro da estrela - elipcidade
+            yy = ys + self.Ny/2 # posicao em pixel com relacao à origem da matriz
+            xx = xs + self.Nx/2 # posicao em pixel com relacao à origem da matriz
+
+            kk = np.arange(self.Ny * self.Nx)
+            vx = kk-self.Nx*np.int64(1.*kk/self.Nx) - xx
+            vy = kk/self.Ny - yy
+
+            # angulo de rotacao da mancha
+            anguloRot=np.abs(np.arctan(ys/xs)) # em radianos
+            if latitudeMancha*longitudeMancha > 0:
+                anguloRot = -anguloRot
+            elif latitudeMancha * longitudeMancha == 0:
+                anguloRot = 0
+
+            ii, = np.where((((vx*np.cos(anguloRot)-vy*np.sin(anguloRot))/np.cos(anguloHelio))**2+(vx*np.sin(anguloRot)+vy*np.cos(anguloRot))**2) < raio_mancha_pixel**2)
+        
+            spot = np.zeros(self.Ny * self.Nx) + 1
+                
+            spot[ii] = ruido.intensidade
+            spot = spot.reshape([self.Ny, self.Nx])
+    
+            self.estrelaMatriz= self.estrelaMatriz * spot
+
+        return self.estrelaMatriz 
+    
     #######  Inserção de manchas
-    def manchas(self,r,intensidadeMancha,lat,longt):
+    def addMancha(self, mancha: Mancha): 
         '''
-        Função onde é criada a(s) mancha(s) da estrela. Todos os parâmetros 
+        Função onde são criadas as Manchas da estrela. Todos os parâmetros 
         são relacionados ao tamanho da estrela, podendo o usuário escolher valores 
         ou selecionar a opção default.
-        *********INICIO DOS PARÂMETROS DA MANCHA*******
-        :parâmetro raioMancha: Raio da mancha em relação ao raio da estrela 
-        :parâmetro intensidadeMancha: Intensidade da mancha em funcao da intensidade maxima da estrela
-        :parâmetro latitudeMancha: Coordenada de latitude da mancha em relação à estrela
-        :parâmetro longitudeMancha: Coordenada de longitude da mancha em relação à estrela 
-        
         '''
-        # Parametros da mancha para teste
-        # #r=0.05 (teste)
-        # intensidadeMancha=0.5 (teste)
-        # coordenadas da mancha em graus
-        #teste latitude=-30
-        #teste longitude=20
+        if (mancha.intensidade > 1) : 
+            print("O valor da intensidade da Mancha deve ser menor que 1.")
+            return 
 
-        self.raioMancha = self.raio * r  # raio em funcao do raio da estrela em pixels
-        self.intensidadeMancha = intensidadeMancha # intensidade da mancha em funcao da intensidade maxima da estrela
+        self.manchas.append(mancha)
 
-        #coordenadas de posicionamento da mancha em graus
+    def criaEstrelaManchada(self):
+        self.criaRuidos(self.manchas)
 
+    #######  Inserção de Fáculas
+    def addFacula(self, facula: Facula): 
+        '''
+        Função onde são criadas as Fáculas da estrela. Todos os parâmetros 
+        são relacionados ao tamanho da estrela, podendo o usuário escolher valores 
+        ou selecionar a opção default.
+        '''
+        if (facula.intensidade < 1) : 
+            print("O valor da intensidade da Fácula deve ser maior que 1.")
+            return 
 
-        degreeToRadian = np.pi/180. #A read-only variable containing the floating-point value used to convert degrees to radians.
-        self.latitudeMancha  = lat * degreeToRadian 
-        self.longitudeMancha =  longt * degreeToRadian
-
-        #posicao da mancha em pixels em relacao ao centro da estrela
-        ys=self.raio*np.sin(self.latitudeMancha)  
-        xs=self.raio*np.cos(self.latitudeMancha)*np.sin(self.longitudeMancha)
-        anguloHelio=np.arccos(np.cos(self.latitudeMancha)*np.cos(self.longitudeMancha))
-
-        
-        # efeito de projecao pela mancha estar a um anguloHeliocentrico do centro da estrela - elipcidade
-        yy = ys + self.Ny/2 # posicao em pixel com relacao à origem da matriz
-        xx = xs + self.Nx/2 # posicao em pixel com relacao à origem da matriz
-
-        kk = np.arange(self.Ny * self.Nx)
-        vx = kk-self.Nx*np.int64(1.*kk/self.Nx) - xx
-        vy = kk/self.Ny - yy
-
-        # angulo de rotacao da mancha
-        anguloRot=np.abs(np.arctan(ys/xs))    # em radianos
-        if self.latitudeMancha*self.longitudeMancha > 0:
-            anguloRot = -anguloRot
-        elif self.latitudeMancha * self.longitudeMancha == 0:
-            anguloRot = 0
-
-        ii, = np.where((((vx*np.cos(anguloRot)-vy*np.sin(anguloRot))/np.cos(anguloHelio))**2+(vx*np.sin(anguloRot)+vy*np.cos(anguloRot))**2) < self.raioMancha**2)
-        
-        spot = np.zeros(self.Ny * self.Nx) + 1
-                
-        spot[ii]=self.intensidadeMancha
-        spot = spot.reshape([self.Ny, self.Nx])
+        self.faculas.append(facula)
     
-        self.estrelaMatriz= self.estrelaMatriz * spot
+    def criaEstrelaComFaculas(self): 
+        self.criaRuidos(self.faculas)
 
-        ### Plot para testes. Descomentar abaixo se necessario ### 
-        #plt.axis([0,self.Nx,0,self.Ny])  #corrigir chamada do plot
-        #self.estrelaMatrizManchada= estrelaManchada        
-        #Plotar(self.tamanhoMatriz,self.estrelaMatriz)
-
-        error=0
-        self.error=error
-        return self.estrelaMatriz #retorna a decisão: se há manchas ou não
-
+    ####### CME (Ejeção de Massa Estelar)
     def cme(self, temperatura, raio): 
         p0 = (400, 220)
         p1 = (410, 250)
@@ -179,51 +204,6 @@ class Estrela:
         cv.line(self.estrelaMatriz, p0, p1, intensidade, raio)
         return self.estrelaMatriz
 
-    #### Inserção de fáculas
-    def faculas(self,estrela,count): 
-        
-         #recebe como parâmetro a estrela atualizada
-        '''
-        Função onde são criadas as fáculas da estrela. Todos os parâmetros 
-        são relacionados ao tamanhdo da estrela, podendo o usuário escolher valores 
-        ou selecionar a opção default.
-        ---Parametros ainda nao definidos
-        *********INICIO DOS PARÂMETROS FÁCULA*******
-        :parâmetro 
-        :parâmetro 
-        :parâmetro 
-        :parâmetro
-        
-        '''
-        error=0
-        self.error=error
-        #vai sobrescrever a estrela que ele está criando, sendo ela a estrela ou a estrelaManchada.
-        self.estrelaMatriz=estrela
-        return self.estrelaMatriz #retorna a decisão: se há fácula ou não 
-   
-    #### Inserção de flares
-    def flares(self,estrela,count): #recebe como parâmetro a estrela atualizada
-        '''
-        Função onde são criadas os flares da estrela. Todos os parâmetros 
-        são relacionados ao tamanhdo da estrela, podendo o usuário escolher valores 
-        ou selecionar a opção default.
-        ---Parametros ainda nao definidos
-        *********INICIO DOS PARÂMETROS FLARES*******
-        :parâmetro 
-        :parâmetro 
-        :parâmetro 
-        :parâmetro
-        
-        '''
-
-       
-        error=0
-        self.error=error
-        #vai sobrescrever a estrela que ele está criando, sendo ela a estrela ou a estrelaManchada.
-        self.estrelaMatriz=estrela
-        return self.estrelaMatriz #retorna a decisão: se há flare ou não 
-
-    #### Inserção de flares
     def ejecaoDeMassa(self, temperatura, raio): 
         # latitude 
         # longitude 
@@ -244,6 +224,25 @@ class Estrela:
     def createCoroa(self): 
         matriz_fotosfera = np.zeros((self.tamanhoMatriz, self.tamanhoMatriz))
         return matriz_fotosfera
+   
+    ####### WIP: Inserção de flares
+    def flares(self): #recebe como parâmetro a estrela atualizada
+        '''
+        Função onde são criadas os flares da estrela. Todos os parâmetros 
+        são relacionados ao tamanhdo da estrela, podendo o usuário escolher valores 
+        ou selecionar a opção default.
+        ---Parametros ainda nao definidos
+        *********INICIO DOS PARÂMETROS FLARES*******
+        :parâmetro 
+        :parâmetro 
+        :parâmetro 
+        :parâmetro
+        
+        '''
+
+        #vai sobrescrever a estrela que ele está criando, sendo ela a estrela ou a estrelaManchada.
+        self.estrelaMatriz = self.estrelaMatriz
+        return self.estrelaMatriz #retorna a decisão: se há flare ou não 
 
     #### Getters
     def getNx(self):

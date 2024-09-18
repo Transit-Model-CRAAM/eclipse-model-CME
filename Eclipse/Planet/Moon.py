@@ -10,7 +10,7 @@ class Moon:
     '''
     pos = np.random.choice([-1, 1])
 
-    def __init__(self, raioM, massM ,periodoM,tempoHoras, planetaAnguloInclinacao, massPlaneta, raioPlanetaPixel, raioEstrelaPixel, raioStar):
+    def __init__(self, raioM, massM ,periodoM,tempoHoras, planetaAnguloInclinacao, massPlaneta, raioPlanetaPixel, raioEstrelaPixel, raioStar, perPlan):
 
         '''
         :parâmetro raioM:: raio da lua em unidades de raio da Terra
@@ -24,7 +24,7 @@ class Moon:
         
         tm0 = 0 # moon first transit time
         self.raioM = raioM*6371 #r moon em relacao ao raio da Terra, #multiplicando pelo R da terra em Km
-        self.massM = massM * (5.972*(10**24)) #em relacao a massa da Terra
+        self.massM = massM*(5.972*(10**24)) #em relacao a massa da Terra
         self.periodo = periodoM #em dias
         self.tm0 = tm0 #default
         self.tempoHoras = tempoHoras
@@ -33,12 +33,12 @@ class Moon:
         self.planetaAnguloInclinacao = planetaAnguloInclinacao
         self.massPlaneta = massPlaneta
         self.raioPlanetaPixel = raioPlanetaPixel
-
+        self.perPlan = perPlan
         # estrela 
         self.raioEstrelaPixel = raioEstrelaPixel
-        self.raioStar = raioStar
+        self.raioStar = raioStar #raio da estrela em relacao ao raio do sol
 
-        self.distancia = self.getDistancia()/100
+        self.distancia = (self.getDistancia())/100
 
         
     # moon orbit in equatorial plane of planet
@@ -49,9 +49,9 @@ class Moon:
         self.Rmoon = self.raioM / self.raioStar #raio da lua em relacao ao raio da estrela 
         self.RmoonPixel = self.Rmoon * self.raioEstrelaPixel #raio da lua calculado em pixel 
         
-        self.dmoon = self.distancia * self.raioEstrelaPixel #calculo da distancia em pixel
+        self.dmoon = self.getDMoon() #calculo da distancia em pixel
         
-        self.theta_m = 2*np.pi * self.tempoHoras / (self.periodo*24.) - self.tm0
+        self.theta_m = 2*np.pi * self.tempoHoras / (self.perPlan*24.) - self.tm0
         self.xm = self.dmoon * np.cos(self.theta_m)
         self.ym = self.dmoon * np.sin(self.theta_m) * np.cos(self.planetaAnguloInclinacao) 
 
@@ -81,7 +81,7 @@ class Moon:
     def getRmoon(self):
         return self.RmoonPixel
 
-    def dMoon(self):
+    def getDMoon(self):
         return self.distancia * self.raioPlanetaPixel
 
     def getxm(self):
