@@ -11,6 +11,7 @@ __status__ = "Production"
 #%matplotlib inline
 
 import scipy
+from Planet.Planeta import Planeta
 from Star.Estrela import Estrela #estrela e eclipse:: extensões de programas auxiliares que realizam o cálculo da curva de luz.
 from Planet.Eclipse import Eclipse
 import numpy
@@ -25,7 +26,7 @@ class Modelo:
      parâmetro eclipse :: classe Eclipse
     parâmetro missão :: Missão selecionada para a coleta da estrela (KEPLER, K2 OU TESS)
     '''
-    def __init__(self,estrela, eclipse, mission):
+    def __init__(self,estrela: Estrela, eclipse: Eclipse, mission):
        
         #coletando objetos de estrela 
         self.u1 = estrela.getu1()
@@ -39,14 +40,17 @@ class Modelo:
         self.mission = mission
 
         #coletando objetos de Eclipse
-        self.raioPlan = eclipse.getRaioPlan()
-        self.R_jup = eclipse.getRplanJup()
-        self.AU = eclipse.getSemiEixo() #semieixo em UA
-        self.semiEixoRaioStar = eclipse.getsemiEixoRaioStar() #semieixo em relacao ao raio da estrela
-        self.porb = eclipse.getPeriodo()
-        self.inc = eclipse.getInc()
-        self.ecc,self.anom = eclipse.getEccAnom()
-        self.lua = eclipse.getLua()
+        self.raioPlan = eclipse.planeta_.getRaioPlan()
+        self.R_jup = eclipse.planeta_.getRplanJup()
+        self.AU = eclipse.planeta_.getSemiEixo() #semieixo em UA
+        self.semiEixoRaioStar = eclipse.planeta_.getsemiEixoRaioStar() #semieixo em relacao ao raio da estrela
+        self.porb = eclipse.planeta_.getPeriodo()
+        self.inc = eclipse.planeta_.getInc()
+        self.mass = eclipse.planeta_.mass
+        self.ecc,self.anom = eclipse.planeta_.getEccAnom()
+
+        if eclipse.planeta_.hasMoons(): 
+            self.lua = eclipse.planeta_.luas[0] # por enquanto apenas uma lua 
 
         #variaveis que serao retornadas a partir da função rd_data
         self.time = 0.
@@ -267,17 +271,21 @@ class Modelo:
         parâmetro ts_model :: tempo do trânsito em Horas
         
         '''
+
         estrela_1 = Estrela(self.r,self.r_Sun, self.mx , self.u1, self.u2, self.n)  #cria o objeto estrela 
         Nx1 = estrela_1.getNx() #coleta parametros da matriz estrela 
         Ny1 = estrela_1.getNy()
         raioEstrelaPixel1 = estrela_1.getRaioStar() #coleta raio da estrela em pixel 
-        estrelaManchada1 = estrela_1.getEstrela() #coleta estrela manchada 
+        # elf, semiEixoUA, raioPlanJup, periodo, anguloInclinacao, ecc, anom, raioStar,mass
+        planeta_1 = Planeta(self.AU, self.R_jup, self.porb, self.inc, self.ecc, self.anom, self.r_Sun, self.mass)
 
-        eclipse1 = Eclipse(Nx1, Ny1, raioEstrelaPixel1, estrelaManchada1)  #cria o objeto eclipse
+        # self, Nx, Ny, raio_estrela_pixel, estrela_manchada: Estrela, planeta_: Planeta):
+        eclipse1 = Eclipse(Nx1, Ny1, raioEstrelaPixel1, estrela_1, planeta_1)  #cria o objeto eclipse
 
         eclipse1.setTempoHoras(1.)
 
-        eclipse1.criarEclipse(self.semiEixoRaioStar, self.AU, self.raioPlan,self.R_jup, self.porb,self.inc,self.lua,self.ecc,self.anom, False)
+        # eclipse_.criarEclipse(cme, anim=True)
+        eclipse1.criarEclipse(cme = False, anim = False, plot = True)
 
         self.lc_model = numpy.array(eclipse1.getCurvaLuz())
         self.ts_model = numpy.array(eclipse1.getTempoHoras())
@@ -286,7 +294,7 @@ class Modelo:
 
     #--------------------------------------------------#
     def retornaParametros(self):
-        return self.u1,self.u2,self.porb,self.time,self.flux,self.flux_err,self.raioPlan,self.AU,self.inc, self.x0, self.nt,self.ts_model
+        return self.u1,self.u2,self.porb,self.time,self.flux,self.flux_err,self.raioPlan,self.AU,self.inc, self.x0, self.nt,self.ts_model, self.mass
     
     def setTime(self,time):
         self.time = time

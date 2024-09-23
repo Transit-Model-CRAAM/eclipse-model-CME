@@ -1,5 +1,6 @@
 from scipy import interpolate
 import emcee
+from Planet.Planeta import Planeta
 from Star.Estrela import Estrela #estrela e eclipse:: extensões de programas auxiliares que realizam o cálculo da curva de luz.
 from Planet.Eclipse import Eclipse
 from Misc.Verify import converte
@@ -46,11 +47,15 @@ class Ajuste:
         Nx = estrela_.getNx()
         Ny = estrela_.getNy()
         raioEstrelaPixel = estrela_.getRaioStar()
-        estrelaManchada = estrela_.getEstrela()
         
-        eclipse = Eclipse(Nx,Ny,raioEstrelaPixel,estrelaManchada)
+        # semiEixoUA, raioPlanJup, periodo, anguloInclinacao, ecc, anom, raioStar,mass): 
+        planeta_ = Planeta(semiEixoUA, raioPlanJup, self.periodo, anguloInclinacao, 0, 0, raioStar, self.tratamento.mass)
+        
+        # Nx, Ny, raio_estrela_pixel, estrela_manchada: Estrela, planeta_: Planeta
+        eclipse = Eclipse(Nx,Ny,raioEstrelaPixel,estrela_, planeta_)
+        
         eclipse.setTempoHoras(1.)
-        eclipse.criarEclipse(semiEixoRaioStar, semiEixoUA, raioPlanetaRstar, raioPlanJup, self.periodo, anguloInclinacao, 0,0 , 0, False, False)
+        eclipse.criarEclipse(cme = False, anim = False, plot= False)
         lc0 = numpy.array(eclipse.getCurvaLuz()) 
         ts0 = numpy.array(eclipse.getTempoHoras()) 
         return interpolate.interp1d(ts0,lc0,fill_value="extrapolate")(time)
@@ -85,20 +90,16 @@ class Ajuste:
     #--------------------------------------------------#
 
 class AjusteManchado: 
-    def __init__(self,tratamento, time, flux, nwalkers, niter, burnin, ndim, u1, u2, semiEixoUA, anguloInclinacao, raioPlanJup, rsun = 1, periodo = 1):
+    def __init__(self,tratamento, time, flux, nwalkers, niter, burnin, ndim, eclipse: Eclipse, rsun = 1, periodo = 1):
         
-        # parametros das 4 manchas (limite) 
-        # TODO: Arrumar multiplas manchas
-        self.lat = [-10, -10, 0, 0]
-        self.long = [10, 40, 0, 0] 
-        self.raioRStar = [0.1, 0.1, 0.1, 0.1]  # em relacao ao raio da estrela 
-        self.intensidade = [0.3, 0.3, 0.5, 0.5]  # em relacao ao raio da estrela
+        self.manchas: Estrela.Mancha = eclipse.estrela_.manchas
 
-        self.u1 = u1
-        self.u2 = u2
-        self.semiEixoUA = semiEixoUA
-        self.anguloInclinacao = anguloInclinacao
-        self.raioPlanJup = raioPlanJup
+        self.u1 = eclipse.estrela_.coeficienteHum
+        self.u2 = eclipse.estrela_.coeficienteDois
+        self.semiEixoUA = eclipse.planeta_.semiEixoUA
+        self.anguloInclinacao = eclipse.planeta_.anguloInclinacao
+        self.raioPlanJup = eclipse.planeta_.raioPlanJup
+
         self.rsun = rsun
         self.periodo = periodo
 
@@ -122,7 +123,7 @@ class AjusteManchado:
             ndim = 1
             
         for i in range(ndim):
-            self.initial = numpy.append(self.initial, [self.long[i], self.lat[i], self.raioRStar[i], self.intensidade[i]])
+            self.initial = numpy.append(self.initial, [self.manchas[i].longitude, self.manchas[i].latitude, self.manchas[i].raio, self.manchas[i].intensidade])
         
         self.ndim = len(self.initial)
         self.p0 = [numpy.array(self.initial) + 1e-4 * numpy.random.randn(self.ndim) for i in range(self.nwalkers)]
@@ -141,15 +142,24 @@ class AjusteManchado:
         
         
         for i in range(len(theta)//4):
-            # manchas(raioRStar, intensidade, lat, long)
-            estrela=estrela_.manchas(theta[(i*4)+2],theta[(i*4)+3],theta[(i*4)+1],theta[i*4])
-        # estrela=estrela_.manchas(r,intensidadeMancha,lat,longt) #recebe a escolha de se irá receber manchas ou não
-        # count+=1
+            # TO-DO: Mudar essa função que esta sendo chamada aqui 
+            # intensidade, raio, latitude, longitude
+            raioRStar = theta[(i*4)+2]
+            intensidade = theta[(i*4)+3]
+            lat = theta[(i*4)+1]
+            long = theta[i*4]
+
+            estrela_.addMancha(Estrela.Mancha(intensidade, raioRStar, lat, long))
         
-        estrelaManchada = estrela_.getEstrela()
-        eclipse = Eclipse(Nx,Ny,raioEstrelaPixel,estrelaManchada)
+        # semiEixoUA, raioPlanJup, periodo, anguloInclinacao, ecc, anom, raioStar,mass): 
+        planeta_ = Planeta(self.semiEixoUA, self.raioPlanJup, self.periodo, self.anguloInclinacao, 0, 0, raioStar, self.tratamento.mass)
+        
+        # Nx, Ny, raio_estrela_pixel, estrela_manchada: Estrela, planeta_: Planeta
+        eclipse = Eclipse(Nx,Ny,raioEstrelaPixel,estrela_, planeta_)
+
         eclipse.setTempoHoras(1.)
-        eclipse.criarEclipse(semiEixoRaioStar, self.semiEixoUA, raioPlanetaRstar, self.raioPlanJup, self.periodo, self.anguloInclinacao, 0,0 , 0, False, False)
+        eclipse.criarEclipse(cme = False, anim = False, plot= False)
+        
         lc0 = numpy.array(eclipse.getCurvaLuz())
         ts0 = numpy.array(eclipse.getTempoHoras()) 
         return interpolate.interp1d(ts0,lc0,fill_value="extrapolate")(time)
