@@ -117,8 +117,8 @@ class AjusteManchado:
         self.initial = numpy.array([])
 
         # limitacao do numero de manchas
-        if(ndim > 4):
-            ndim = 4
+        if(ndim > len(self.manchas)):
+            ndim = len(self.manchas)
         elif(ndim < 1):
             ndim = 1
             
