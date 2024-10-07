@@ -75,7 +75,7 @@ class Modelo:
     ##--------------------------------------------------------------------------------------------------------------------------------------------------##
     
         # utiiza-se o PDCSAP_FLUX porque será realizado a análise no trânsito.
-        lc = search_lightcurve(self.star_name, cadence = self.cadence, mission=self.mission).download_all()
+        lc = search_lightcurve(self.star_name, cadence = self.cadence, mission = self.mission).download_all()
         time = [] # time = array com os dados de tempo
         flux = [] # flux = array com os dados de fluxo
         flux_err = [] # flux_err = array com os dados de erro do fluxo
@@ -83,7 +83,7 @@ class Modelo:
         flux_temp = []
         flux_err_temp = []
 
-        for i in range(0, len(lc)):
+        for i in range(0, len(lc)-1):
             try:
                 flux_temp.append(lc[i].sap_flux)
                 flux_err_temp.append(lc[i].sap_flux_err)
