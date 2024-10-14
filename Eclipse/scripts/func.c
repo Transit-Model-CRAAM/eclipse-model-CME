@@ -55,21 +55,42 @@ double curvaLuz(double x0, double y0, int tamanhoMatriz, double raioPlanetaPixel
 	return valor;
 }
 
+double curvaLuzCME(double x0, double y0, int tamanhoMatriz, double raioPlanetaPixel, double *estrelaManchada, double *kk, double maxCurvaLuz, double *matrizCME, double opacidadeCME){
+    double valor = 0;
+    int i;
+    
+#pragma omp parallel for reduction(+:valor)
+    for(i=0;i<tamanhoMatriz*tamanhoMatriz;i++){
+        if(matrizCME[i] > 0){ // Caso a posição esteja passando em cima da CME
+            if(pow((kk[i]/tamanhoMatriz-y0),2) + pow((kk[i]-tamanhoMatriz*floor(kk[i]/tamanhoMatriz)-x0),2) <= pow(raioPlanetaPixel,2)){ // Se o planeta estiver atrás
+                valor += matrizCME[i] * opacidadeCME; // Matriz com estrela, CME e planeta (multiplica opacidade). Opacidade sempre de 0 a 1 (%)
+            }
+            else {
+                valor += matrizCME[i]; // Matriz somente com estrela e CME
+            }
+        }
+		// Procura pela posicao da matriz que não tem o planeta em frente
+        else if (pow((kk[i]/tamanhoMatriz-y0),2) + pow((kk[i]-tamanhoMatriz*floor(kk[i]/tamanhoMatriz)-x0),2) > pow(raioPlanetaPixel,2)){
+            valor += estrelaManchada[i];
+        }
+    }
+    // Normalizacao
+    valor = valor/maxCurvaLuz;    
+    return valor;
+}
+
 double curvaLuzLua(double x0, double y0, double xm, double ym, double rMoon, int tamanhoMatriz, double raioPlanetaPixel, double *estrelaManchada, double *kk, double maxCurvaLuz){
 	double valor = 0;
 	int i;
 	
 #pragma omp parallel for reduction(+:valor)
 	for(i=0;i<tamanhoMatriz*tamanhoMatriz;i++){
+		// Procura pela posicao que não é planeta
 		if((pow((kk[i]/tamanhoMatriz-y0),2) + pow((kk[i]-tamanhoMatriz*floor(kk[i]/tamanhoMatriz)-x0),2) > pow(raioPlanetaPixel,2)) && (pow((kk[i]/tamanhoMatriz-ym),2) + pow((kk[i]-tamanhoMatriz*floor(kk[i]/tamanhoMatriz)-xm),2) > pow(rMoon,2))){
 			valor += estrelaManchada[i];
 		}
 	}
-	
+	// Normalizacao
 	valor = valor/maxCurvaLuz;
-
-//((kk/tamanhoMatriz-y0)**2+(kk-tamanhoMatriz*np.fix(kk/tamanhoMatriz)-x0)**2 <= raioPlanetaPixel**2)	
-//(self.estrelaManchada*plan,dtype=float)/maxCurvaLuz
-	
 	return valor;
 }
