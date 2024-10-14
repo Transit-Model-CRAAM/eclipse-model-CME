@@ -306,4 +306,5 @@ class Estrela:
         Ny = tamanhoMatriz
         plt.axis([0,Nx,0,Ny])
         plt.imshow(estrela,self.color)
+        plt.gca().invert_yaxis()  # Corrige o eixo Y invertido
         plt.show()
