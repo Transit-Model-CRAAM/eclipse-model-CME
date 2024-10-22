@@ -41,15 +41,16 @@ class Ajuste:
     #--------------------------------------------------#
     def eclipse_mcmc(self, time, theta):
         u1, u2, semiEixoUA, anguloInclinacao, raioPlanJup = theta
+
         raioStar, raioPlanetaRstar, semiEixoRaioStar = converte(self.rsun,raioPlanJup,semiEixoUA)
         
-        estrela_ = Estrela(373, raioStar, 240., u1, u2, 856)
+        estrela_ = Estrela(373, self.rsun, 240., u1, u2, 856)
         Nx = estrela_.getNx()
         Ny = estrela_.getNy()
         raioEstrelaPixel = estrela_.getRaioStar()
         
         # semiEixoUA, raioPlanJup, periodo, anguloInclinacao, ecc, anom, raioStar,mass): 
-        planeta_ = Planeta(semiEixoUA, raioPlanJup, self.periodo, anguloInclinacao, 0, 0, raioStar, self.tratamento.mass)
+        planeta_ = Planeta(semiEixoUA, raioPlanJup, self.periodo, anguloInclinacao, 0, 0, estrela_.getRaioSun(), self.tratamento.mass)
         
         # Nx, Ny, raio_estrela_pixel, estrela_manchada: Estrela, planeta_: Planeta
         eclipse = Eclipse(Nx,Ny,raioEstrelaPixel,estrela_, planeta_)
@@ -135,7 +136,7 @@ class AjusteManchado:
     def eclipse_mcmc(self, time, theta):
         raioStar, raioPlanetaRstar, semiEixoRaioStar = converte(self.rsun,self.raioPlanJup,self.semiEixoUA)
         
-        estrela_ = Estrela(373, raioStar, 240., self.u1, self.u2, 856)
+        estrela_ = Estrela(373, self.rsun, 240., self.u1, self.u2, 856)
         Nx = estrela_.getNx()
         Ny = estrela_.getNy()
         raioEstrelaPixel = estrela_.getRaioStar()
@@ -151,8 +152,9 @@ class AjusteManchado:
 
             estrela_.addMancha(Estrela.Mancha(intensidade, raioRStar, lat, long))
         
+        estrela_.criaEstrelaManchada()
         # semiEixoUA, raioPlanJup, periodo, anguloInclinacao, ecc, anom, raioStar,mass): 
-        planeta_ = Planeta(self.semiEixoUA, self.raioPlanJup, self.periodo, self.anguloInclinacao, 0, 0, raioStar, self.tratamento.mass)
+        planeta_ = Planeta(self.semiEixoUA, self.raioPlanJup, self.periodo, self.anguloInclinacao, 0, 0, estrela_.getRaioSun(), self.tratamento.mass)
         
         # Nx, Ny, raio_estrela_pixel, estrela_manchada: Estrela, planeta_: Planeta
         eclipse = Eclipse(Nx,Ny,raioEstrelaPixel,estrela_, planeta_)
